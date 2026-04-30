@@ -26,3 +26,8 @@
 /tests/CMakeFiles/
 /tests/Makefile
 /tests/cmake_install.cmake
+# Refactor backups and local telemetry captures
+.web_htop-refactor/
+build*/
+*.jsonl
+benchmark*.json
