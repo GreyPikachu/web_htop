@@ -1,1 +1,44 @@
-# TODO
+name: C++ checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++, clang++]
+        sanitizer: ['', address, undefined]
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ clang libgtest-dev
+      - run: >-
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+          -DWEB_HTOP_SANITIZER=${{ matrix.sanitizer }}
+          -DWEB_HTOP_BUILD_LEGACY_TESTS=ON
+      - run: cmake --build build -j2
+      - run: ctest --test-dir build --output-on-failure --no-tests=error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: logs-${{ matrix.compiler }}-${{ matrix.sanitizer || 'normal' }}
+          path: build/Testing/Temporary/
+  thread-sanitizer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWEB_HTOP_SANITIZER=thread
+      - run: cmake --build build -j2
+      - run: ctest --test-dir build -R '^core$' --output-on-failure --no-tests=error
+  fuzz-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DCMAKE_CXX_COMPILER=clang++ -DWEB_HTOP_BUILD_FUZZERS=ON
+      - run: cmake --build build -j2
+      - run: |
+          ./build/tests/web_htop_fuzz_json -max_total_time=20 -max_len=8192
+          ./build/tests/web_htop_fuzz_frame -max_total_time=20 -max_len=8192
+          ./build/tests/web_htop_fuzz_proc -max_total_time=20 -max_len=4096
