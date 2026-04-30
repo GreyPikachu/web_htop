@@ -1,24 +1,32 @@
 cmake_minimum_required(VERSION 3.20)
-
-project(
-    web_htop
-    VERSION 0.1.0
-    LANGUAGES CXX
-)
-
-set(CMAKE_CXX_STANDARD 17)
+project(web_htop VERSION 0.2.0 LANGUAGES CXX)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "web_htop requires Linux (WSL2 is supported)")
+endif()
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Helps clangd/IDE resolve includes after configure.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-option(WEB_HTOP_BUILD_APPS "Build server/client executables" ON)
-option(WEB_HTOP_BUILD_TESTS "Build tests" OFF)
-
-include(cmake/Dependencies.cmake)
-
+option(WEB_HTOP_BUILD_APPS "Build server and client" ON)
+option(WEB_HTOP_BUILD_TESTS "Build deterministic and integration tests" ON)
+option(WEB_HTOP_BUILD_LEGACY_TESTS "Build retained GoogleTest codec tests (requires installed GTest)" OFF)
+option(WEB_HTOP_BUILD_FUZZERS "Build libFuzzer targets (Clang)" OFF)
+set(WEB_HTOP_SANITIZER "" CACHE STRING "address, undefined or thread")
+find_package(Threads REQUIRED)
+add_library(web_htop_options INTERFACE)
+target_compile_options(web_htop_options INTERFACE -Wall -Wextra -Wpedantic -Wshadow -Wformat=2)
+if(WEB_HTOP_SANITIZER)
+    if(NOT WEB_HTOP_SANITIZER MATCHES "^(address|undefined|thread)$")
+        message(FATAL_ERROR "Unknown sanitizer")
+    endif()
+    target_compile_options(web_htop_options INTERFACE -fsanitize=${WEB_HTOP_SANITIZER} -fno-omit-frame-pointer -g)
+    target_link_options(web_htop_options INTERFACE -fsanitize=${WEB_HTOP_SANITIZER})
+endif()
+include(CTest)
 add_subdirectory(common)
 add_subdirectory(server)
 add_subdirectory(client)
-add_subdirectory(tests)
+if(WEB_HTOP_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
