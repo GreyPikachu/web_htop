@@ -1,1 +1,18 @@
-{}
+{
+  "version": 3,
+  "configurePresets": [
+    {"name": "debug", "binaryDir": "${sourceDir}/build", "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug", "WEB_HTOP_BUILD_TESTS": "ON"}},
+    {"name": "release", "binaryDir": "${sourceDir}/build-release", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "WEB_HTOP_BUILD_TESTS": "ON"}},
+    {"name": "asan", "inherits": "debug", "binaryDir": "${sourceDir}/build-asan", "cacheVariables": {"WEB_HTOP_SANITIZER": "address"}},
+    {"name": "tsan", "inherits": "debug", "binaryDir": "${sourceDir}/build-tsan", "cacheVariables": {"WEB_HTOP_SANITIZER": "thread"}}
+  ],
+  "buildPresets": [
+    {"name": "debug", "configurePreset": "debug"}, {"name": "release", "configurePreset": "release"},
+    {"name": "asan", "configurePreset": "asan"}, {"name": "tsan", "configurePreset": "tsan"}
+  ],
+  "testPresets": [
+    {"name": "debug", "configurePreset": "debug", "output": {"outputOnFailure": true}},
+    {"name": "asan", "configurePreset": "asan", "output": {"outputOnFailure": true}},
+    {"name": "tsan", "configurePreset": "tsan", "filter": {"include": {"name": "^core$"}}, "output": {"outputOnFailure": true}}
+  ]
+}
