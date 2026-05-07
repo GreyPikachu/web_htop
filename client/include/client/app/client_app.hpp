@@ -1,27 +1,17 @@
 #pragma once
-
-#include "client/app/client_context.hpp"
-#include "client/net/reconnect_policy.hpp"
-
-#include <atomic>
 #include <string>
-
 namespace web_htop::client {
-
-class ClientApp {
-public:
-    ClientApp(std::string host, int streaming_port, int http_port);
-
-    int run();
-    void stop();
-
-private:
-    bool connect_stream(unsigned int attempt);
-    void render_once();
-
-    std::atomic<bool> stopping_{false};
-    ClientContext context_;
-    ReconnectPolicy reconnect_policy_{};
+struct ClientOptions {
+    std::string host{"localhost"}, record_path, replay_path;
+    unsigned stream_port{9999}, http_port{8080};
+    bool once{};
 };
+class ClientApp {
+  public:
+    explicit ClientApp(ClientOptions options) : options_(std::move(options)) {}
+    int Run();
 
-}  // namespace web_htop::client
+  private:
+    ClientOptions options_;
+};
+} // namespace web_htop::client
