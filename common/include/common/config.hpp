@@ -1,7 +1,7 @@
 /**
  * @file common/config.hpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-18
  *
  * @brief Common umbrella configuration header for web_htop.
@@ -14,7 +14,7 @@
 #define WEB_HTOP_COMMON_CONFIG_HPP_
 
 #include "common/constants.hpp" ///< Shared project constants.
-#include "common/types.hpp"     ///< Shared project type aliases.
 #include "common/enums.hpp"     ///< Shared project enumerations.
+#include "common/types.hpp"     ///< Shared project type aliases.
 
 #endif // WEB_HTOP_COMMON_CONFIG_HPP_
