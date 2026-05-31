@@ -1,7 +1,7 @@
 /**
  * @file common/constants.hpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-06
  *
  * @brief Common project constants for web_htop.
@@ -18,19 +18,19 @@ namespace web_htop {
 
 /**
  * @namespace /proc filesystem paths
- * 
+ *
  * @brief Constants for paths within the /proc filesystem
  */
 namespace proc {
 
-constexpr std::string_view PROC    = "/proc/";        ///< `/proc` prefix for process-specific file paths
-constexpr std::string_view STAT    = "/proc/stat";    ///< Path to aggregated CPU statistics
+constexpr std::string_view PROC = "/proc/";     ///< `/proc` prefix for process-specific file paths
+constexpr std::string_view STAT = "/proc/stat"; ///< Path to aggregated CPU statistics
 constexpr std::string_view MEMINFO = "/proc/meminfo"; ///< Path to memory subsystem information
 constexpr std::string_view NET_DEV = "/proc/net/dev"; ///< Path to network device statistics
 constexpr std::string_view LOADAVG = "/proc/loadavg"; ///< Path to system load averages
-constexpr std::string_view UPTIME  = "/proc/uptime";  ///< Path to system uptime information
+constexpr std::string_view UPTIME = "/proc/uptime";   ///< Path to system uptime information
 
-} // namespace web_htop::proc
+} // namespace proc
 
 } // namespace web_htop
 
