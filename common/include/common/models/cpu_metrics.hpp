@@ -1,7 +1,7 @@
 /**
  * @file common/models/cpu_metrics.hpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-07
  *
  * @brief CPU metrics model for one collection snapshot.
@@ -28,11 +28,11 @@ namespace web_htop::models {
  * `total_usage_percent`, `frequency_mhz`, `per_core_usage_percent`.
  */
 struct CPUMetrics {
-    TimeStamp               timestamp{};              ///< Sampling time in milliseconds since epoch
-    CPUCores                core_count{};             ///< Number of currently online CPU cores
-    Percentage              total_usage_percent{};    ///< Aggregated CPU usage in range [0.0, 100.0]
+    TimeStamp timestamp{};            ///< Sampling time in milliseconds since epoch
+    CPUCores core_count{};            ///< Number of currently online CPU cores
+    Percentage total_usage_percent{}; ///< Aggregated CPU usage in range [0.0, 100.0]
     std::vector<Percentage> per_core_usage_percent{}; ///< Per-core CPU usage in range [0.0, 100.0]
-    MegaHertz               frequency_mhz{};          ///< Current CPU frequency in MHz
+    MegaHertz frequency_mhz{};                        ///< Current CPU frequency in MHz
 
     /**
      * @brief Serialize CPU metrics to JSON object.
@@ -45,7 +45,7 @@ struct CPUMetrics {
      * @param value JSON value expected to be object.
      * @returns Parsed `CPUMetrics` with absent fields left as defaults.
      */
-    [[nodiscard]] static CPUMetrics FromJson(json::utils::JSONValue const & value);
+    [[nodiscard]] static CPUMetrics FromJson(json::utils::JSONValue const& value);
 };
 
 } // namespace web_htop::models
