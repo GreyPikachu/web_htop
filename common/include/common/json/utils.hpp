@@ -1,9 +1,9 @@
 /**
  * @file common/json/utils.hpp
- * 
- * @author Maksim Vashkevich
+ *
+ * @author Roman Snitko
  * @date 2026-04-05
- * 
+ *
  * @brief Lightweight JSON value model for web_htop.
  * @details This header defines `JSONValue` and related aliases used by parser
  * and model serialization logic without external JSON dependencies.
@@ -17,18 +17,18 @@
 #include <functional>  // std::reference_wrapper
 #include <memory>      // std::unique_ptr
 #include <optional>    // std::optional
-#include <string_view> // std::string_view
 #include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::pair
 #include <variant>     // std::variant
 #include <vector>      // std::vector
-#include <utility>     // std::pair
 
 namespace web_htop::json::utils {
 
 class JSONValue;
 
 /// @brief JSON object representation.
-using JSONObject = std::vector<std::pair<std::string_view, JSONValue>>;
+using JSONObject = std::vector<std::pair<std::string, JSONValue>>;
 
 using JSONArray = std::vector<JSONValue>; ///< JSON array representation
 
@@ -37,16 +37,9 @@ using JSONArray = std::vector<JSONValue>; ///< JSON array representation
  * @details Containers are heap-allocated to keep `JSONValue` movable even for
  * recursive array/object structures.
  */
-using JSONVariant = std::variant<
-    std::monostate,
-    bool,
-    std::int64_t,
-    std::uint64_t,
-    double,
-    std::string_view,
-    std::unique_ptr<JSONArray>,
-    std::unique_ptr<JSONObject>
->;
+using JSONVariant =
+    std::variant<std::monostate, bool, std::int64_t, std::uint64_t, double, std::string,
+                 std::unique_ptr<JSONArray>, std::unique_ptr<JSONObject>>;
 
 /**
  * @brief Variant-based JSON value container.
@@ -54,7 +47,7 @@ using JSONVariant = std::variant<
  * accessors, indexing and string serialization.
  */
 class JSONValue {
-public:
+  public:
     /**
      * @brief Construct null JSON value.
      * @details Initializes value as JSON `null`.
@@ -97,7 +90,7 @@ public:
 
     /**
      * @brief Construct string JSON value from view.
-     * @details Stores non-owning string view; caller must guarantee lifetime.
+     * @details Copies the string; the returned document owns its storage.
      * @param sw String view to store.
      * @returns Constructed string `JSONValue`.
      */
@@ -105,11 +98,11 @@ public:
 
     /**
      * @brief Construct string JSON value from C string.
-     * @details Stores `std::string_view` over provided null-terminated string.
+     * @details Copies the provided null-terminated string.
      * @param s Pointer to null-terminated UTF-8 string.
      * @returns Constructed string `JSONValue`.
      */
-    explicit JSONValue(char const * s);
+    explicit JSONValue(char const* s);
 
     /**
      * @brief Construct array JSON value.
@@ -117,7 +110,7 @@ public:
      * @param arr Array value to store.
      * @returns Constructed array `JSONValue`.
      */
-    explicit JSONValue(JSONArray && arr);
+    explicit JSONValue(JSONArray&& arr);
 
     /**
      * @brief Construct object JSON value.
@@ -125,13 +118,13 @@ public:
      * @param obj Object value to store.
      * @returns Constructed object `JSONValue`.
      */
-    explicit JSONValue(JSONObject && obj);
+    explicit JSONValue(JSONObject&& obj);
 
-    JSONValue(JSONValue const &) = delete;
-    JSONValue & operator=(JSONValue const &) = delete;
+    JSONValue(JSONValue const&) = delete;
+    JSONValue& operator=(JSONValue const&) = delete;
 
-    JSONValue(JSONValue &&) noexcept = default;
-    JSONValue & operator=(JSONValue &&) noexcept = default;
+    JSONValue(JSONValue&&) noexcept = default;
+    JSONValue& operator=(JSONValue&&) noexcept = default;
 
     /**
      * @brief Check if value is JSON null.
@@ -211,7 +204,7 @@ public:
     [[nodiscard]] std::optional<double> AsDouble() const;
 
     /**
-     * @brief Get value as string.
+     * @brief Borrow a string from this document.
      * @details Returns underlying non-owning `std::string_view`.
      * @returns Optional string view.
      */
@@ -222,28 +215,28 @@ public:
      * @details Returns pointer only when value stores an array.
      * @returns Pointer to array or `nullptr`.
      */
-    [[nodiscard]] JSONArray const * AsArray() const;
+    [[nodiscard]] JSONArray const* AsArray() const;
 
     /**
      * @brief Access value as const object pointer.
      * @details Returns pointer only when value stores an object.
      * @returns Pointer to object or `nullptr`.
      */
-    [[nodiscard]] JSONObject const * AsObject() const;
+    [[nodiscard]] JSONObject const* AsObject() const;
 
     /**
      * @brief Access value as mutable array pointer.
      * @details Provides mutable access when current value is array.
      * @returns Pointer to array or `nullptr`.
      */
-    [[nodiscard]] JSONArray * AsArray();
+    [[nodiscard]] JSONArray* AsArray();
 
     /**
      * @brief Access value as mutable object pointer.
      * @details Provides mutable access when current value is object.
      * @returns Pointer to object or `nullptr`.
      */
-    [[nodiscard]] JSONObject * AsObject();
+    [[nodiscard]] JSONObject* AsObject();
 
     /**
      * @brief Access object field by key (const).
@@ -251,7 +244,8 @@ public:
      * @param key Object field name.
      * @returns Optional reference to field value.
      */
-    [[nodiscard]] std::optional<std::reference_wrapper<JSONValue const>> operator[](std::string_view key) const;
+    [[nodiscard]] std::optional<std::reference_wrapper<JSONValue const>>
+    operator[](std::string_view key) const;
 
     /**
      * @brief Access array element by index (const).
@@ -259,7 +253,8 @@ public:
      * @param index Zero-based array index.
      * @returns Optional reference to element value.
      */
-    [[nodiscard]] std::optional<std::reference_wrapper<JSONValue const>> operator[](size_t index) const;
+    [[nodiscard]] std::optional<std::reference_wrapper<JSONValue const>>
+    operator[](size_t index) const;
 
     /**
      * @brief Access object field by key (mutable).
@@ -301,7 +296,7 @@ public:
      */
     [[nodiscard]] std::string ToString(int32_t indent = -1) const;
 
-private:
+  private:
     JSONVariant value_;
 
     /**
@@ -312,7 +307,7 @@ private:
      * @param currentLevel Current recursion depth.
      * @returns None.
      */
-    void SerializeTo_(std::string & out, int32_t indent, int32_t currentLevel) const;
+    void SerializeTo_(std::string& out, int32_t indent, int32_t currentLevel) const;
 };
 
 } // namespace web_htop::json::utils
