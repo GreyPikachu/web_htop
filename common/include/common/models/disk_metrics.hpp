@@ -1,7 +1,7 @@
 /**
  * @file common/models/disk_metrics.hpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-18
  *
  * @brief Disk metrics model for one collection snapshot.
@@ -23,11 +23,11 @@ namespace web_htop::models {
  * `total_bytes`, `available_bytes`, `used_bytes`, `used_percent`.
  */
 struct DiskMetrics {
-    TimeStamp  timestamp{};       ///< Sampling time in milliseconds since epoch
-    Bytes      total_bytes{};     ///< Total filesystem size in bytes
-    Bytes      available_bytes{}; ///< Space available for non-privileged users
-    Bytes      used_bytes{};      ///< Computed used size (`total - available`)
-    Percentage used_percent{};    ///< Used space in range [0.0, 100.0]
+    TimeStamp timestamp{};     ///< Sampling time in milliseconds since epoch
+    Bytes total_bytes{};       ///< Total filesystem size in bytes
+    Bytes available_bytes{};   ///< Space available for non-privileged users
+    Bytes used_bytes{};        ///< Computed used size (`total - available`)
+    Percentage used_percent{}; ///< Used space in range [0.0, 100.0]
 
     /**
      * @brief Serialize disk metrics to JSON object.
@@ -40,7 +40,7 @@ struct DiskMetrics {
      * @param value JSON value expected to be object.
      * @returns Parsed `DiskMetrics` with absent fields left as defaults.
      */
-    [[nodiscard]] static DiskMetrics FromJson(json::utils::JSONValue const & value);
+    [[nodiscard]] static DiskMetrics FromJson(json::utils::JSONValue const& value);
 };
 
 } // namespace web_htop::models
