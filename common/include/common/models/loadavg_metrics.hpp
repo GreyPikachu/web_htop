@@ -23,10 +23,10 @@ namespace web_htop::models {
  * `load_1m`, `load_5m`, `load_15m`.
  */
 struct LoadavgMetrics {
-    TimeStamp  timestamp{}; ///< Sampling time in milliseconds since epoch
-    Percentage load_1m{};   ///< Average runnable entities in last 1 minute
-    Percentage load_5m{};   ///< Average runnable entities in last 5 minutes
-    Percentage load_15m{};  ///< Average runnable entities in last 15 minutes
+    TimeStamp timestamp{}; ///< Sampling time in milliseconds since epoch
+    Percentage load_1m{};  ///< Average runnable entities in last 1 minute
+    Percentage load_5m{};  ///< Average runnable entities in last 5 minutes
+    Percentage load_15m{}; ///< Average runnable entities in last 15 minutes
 
     /**
      * @brief Serialize load average metrics to JSON object.
@@ -39,7 +39,7 @@ struct LoadavgMetrics {
      * @param value JSON value expected to be object.
      * @returns Parsed `LoadavgMetrics` with absent fields left as defaults.
      */
-    [[nodiscard]] static LoadavgMetrics FromJson(json::utils::JSONValue const & value);
+    [[nodiscard]] static LoadavgMetrics FromJson(json::utils::JSONValue const& value);
 };
 
 } // namespace web_htop::models
