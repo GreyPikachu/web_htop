@@ -1,7 +1,7 @@
 /**
  * @file common/models/process_metrics.hpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-18
  *
  * @brief Process list metrics models for one collection snapshot.
@@ -29,13 +29,15 @@ namespace web_htop::models {
  * `thread_count`.
  */
 struct ProcessInfo {
-    ProcessID    pid{};                        ///< Process identifier
-    std::string  name{};                       ///< Process name (comm)
+    std::uint64_t starttime_ticks{};
+    bool cpu_valid{};
+    ProcessID pid{};                           ///< Process identifier
+    std::string name{};                        ///< Process name (comm)
     ProcessState state{ProcessState::UNKNOWN}; ///< Process state from `/proc/[pid]/stat`
-    Percentage   cpu_percent{};                ///< Process CPU usage in range [0.0, 100.0]
-    Bytes        memory_bytes{};               ///< Resident memory usage in bytes
-    Percentage   memory_percent{};             ///< Process memory usage in range [0.0, 100.0]
-    CPUCores     thread_count{};                    ///< Number of process threads
+    Percentage cpu_percent{};                  ///< CPU usage: one fully busy core is 100%
+    Bytes memory_bytes{};                      ///< Resident memory usage in bytes
+    Percentage memory_percent{};               ///< Process memory usage in range [0.0, 100.0]
+    CPUCores thread_count{};                   ///< Number of process threads
 
     /**
      * @brief Serialize process info to JSON object.
@@ -48,7 +50,7 @@ struct ProcessInfo {
      * @param value JSON value expected to be object.
      * @returns Parsed `ProcessInfo` with absent fields left as defaults.
      */
-    [[nodiscard]] static ProcessInfo FromJson(json::utils::JSONValue const & value);
+    [[nodiscard]] static ProcessInfo FromJson(json::utils::JSONValue const& value);
 };
 
 /**
@@ -57,10 +59,10 @@ struct ProcessInfo {
  * `total_processes`, `running_processes`, `processes`.
  */
 struct ProcessMetrics {
-    TimeStamp                timestamp{};         ///< Sampling time in milliseconds since epoch
-    std::uint64_t            total_processes{};   ///< Total number of collected processes
-    std::uint64_t            running_processes{}; ///< Number of processes in running state
-    std::vector<ProcessInfo> processes{};         ///< Process list snapshot
+    TimeStamp timestamp{};                ///< Sampling time in milliseconds since epoch
+    std::uint64_t total_processes{};      ///< Total number of collected processes
+    std::uint64_t running_processes{};    ///< Number of processes in running state
+    std::vector<ProcessInfo> processes{}; ///< Process list snapshot
 
     /**
      * @brief Serialize process list metrics to JSON object.
@@ -73,7 +75,7 @@ struct ProcessMetrics {
      * @param value JSON value expected to be object.
      * @returns Parsed `ProcessMetrics` with absent fields left as defaults.
      */
-    [[nodiscard]] static ProcessMetrics FromJson(json::utils::JSONValue const & value);
+    [[nodiscard]] static ProcessMetrics FromJson(json::utils::JSONValue const& value);
 };
 
 } // namespace web_htop::models
