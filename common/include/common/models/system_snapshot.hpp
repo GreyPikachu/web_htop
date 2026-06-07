@@ -19,6 +19,7 @@
 #include "common/models/memory_metrics.hpp"
 #include "common/models/network_metrics.hpp"
 #include "common/models/process_metrics.hpp"
+#include "common/telemetry.hpp"
 #include "common/types.hpp"
 
 namespace web_htop::models {
@@ -29,13 +30,14 @@ namespace web_htop::models {
  * `cpu`, `memory`, `disk`, `network`, `loadavg`, `process`.
  */
 struct SystemSnapshot {
-    TimeStamp      timestamp{}; ///< Snapshot timestamp in milliseconds since epoch
-    CPUMetrics     cpu{};       ///< CPU metrics section
-    MemoryMetrics  memory{};    ///< Memory metrics section
-    DiskMetrics    disk{};      ///< Disk metrics section
-    NetworkMetrics network{};   ///< Network metrics section
-    LoadavgMetrics loadavg{};   ///< Load average metrics section
-    ProcessMetrics process{};   ///< Process metrics section
+    TelemetryInfo telemetry{};
+    TimeStamp timestamp{};    ///< Snapshot timestamp in milliseconds since epoch
+    CPUMetrics cpu{};         ///< CPU metrics section
+    MemoryMetrics memory{};   ///< Memory metrics section
+    DiskMetrics disk{};       ///< Disk metrics section
+    NetworkMetrics network{}; ///< Network metrics section
+    LoadavgMetrics loadavg{}; ///< Load average metrics section
+    ProcessMetrics process{}; ///< Process metrics section
 
     /**
      * @brief Serialize full system snapshot to JSON object.
@@ -48,7 +50,7 @@ struct SystemSnapshot {
      * @param value JSON value expected to be object.
      * @returns Parsed `SystemSnapshot` with absent fields left as defaults.
      */
-    [[nodiscard]] static SystemSnapshot FromJson(json::utils::JSONValue const & value);
+    [[nodiscard]] static SystemSnapshot FromJson(json::utils::JSONValue const& value);
 };
 
 } // namespace web_htop::models
