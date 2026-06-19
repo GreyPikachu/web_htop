@@ -1,7 +1,7 @@
 /**
  * @file common/models/cpu_metrics.cpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-07
  *
  * @brief CPU metrics model serialization implementation.
@@ -21,17 +21,19 @@ json::utils::JSONValue CPUMetrics::ToJson() const {
 
     json::utils::JSONObject object{};
     object.reserve(5);
-    
+
     object.emplace_back("timestamp", json::utils::JSONValue(static_cast<std::uint64_t>(timestamp)));
-    object.emplace_back("core_count", json::utils::JSONValue(static_cast<std::uint64_t>(core_count)));
+    object.emplace_back("core_count",
+                        json::utils::JSONValue(static_cast<std::uint64_t>(core_count)));
     object.emplace_back("total_usage_percent", json::utils::JSONValue(total_usage_percent));
     object.emplace_back("frequency_mhz", json::utils::JSONValue(frequency_mhz));
-    object.emplace_back("per_core_usage_percent", json::utils::JSONValue(std::move(per_core_array)));
+    object.emplace_back("per_core_usage_percent",
+                        json::utils::JSONValue(std::move(per_core_array)));
 
     return json::utils::JSONValue(std::move(object));
 }
 
-CPUMetrics CPUMetrics::FromJson(json::utils::JSONValue const & value) {
+CPUMetrics CPUMetrics::FromJson(json::utils::JSONValue const& value) {
     CPUMetrics metrics{};
 
     if (auto ts = value["timestamp"]) {
@@ -55,9 +57,9 @@ CPUMetrics CPUMetrics::FromJson(json::utils::JSONValue const & value) {
         }
     }
     if (auto per_core = value["per_core_usage_percent"]) {
-        if (auto const * array = per_core->get().AsArray()) {
+        if (auto const* array = per_core->get().AsArray()) {
             metrics.per_core_usage_percent.reserve(array->size());
-            for (auto const & item : *array) {
+            for (auto const& item : *array) {
                 if (auto item_usage = item.AsDouble()) {
                     metrics.per_core_usage_percent.push_back(*item_usage);
                 }
