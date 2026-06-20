@@ -1,7 +1,7 @@
 /**
  * @file common/models/disk_metrics.cpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-18
  *
  * @brief Disk metrics model serialization implementation.
@@ -25,7 +25,7 @@ json::utils::JSONValue DiskMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-DiskMetrics DiskMetrics::FromJson(json::utils::JSONValue const & value) {
+DiskMetrics DiskMetrics::FromJson(json::utils::JSONValue const& value) {
     DiskMetrics metrics{};
 
     if (auto ts = value["timestamp"]) {
