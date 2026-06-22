@@ -25,7 +25,7 @@ json::utils::JSONValue LoadavgMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-LoadavgMetrics LoadavgMetrics::FromJson(json::utils::JSONValue const & value) {
+LoadavgMetrics LoadavgMetrics::FromJson(json::utils::JSONValue const& value) {
     LoadavgMetrics metrics{};
 
     if (auto ts = value["timestamp"]) {
