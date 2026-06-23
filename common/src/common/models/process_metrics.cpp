@@ -1,7 +1,7 @@
 /**
  * @file common/models/process_metrics.cpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-18
  *
  * @brief Process list metrics model serialization implementation.
@@ -11,27 +11,34 @@
 
 #include "common/models/process_metrics.hpp"
 
+#include "common/json/access.hpp"
 #include <string_view> // std::string_view
 
 namespace web_htop::models {
 
 json::utils::JSONValue ProcessInfo::ToJson() const {
     json::utils::JSONObject object{};
-    object.reserve(7);
+    object.reserve(9);
+    json::Add(object, "starttime_ticks", starttime_ticks);
+    json::Add(object, "cpu_valid", cpu_valid);
 
     object.emplace_back("pid", json::utils::JSONValue(static_cast<std::int64_t>(pid)));
     object.emplace_back("name", json::utils::JSONValue(std::string_view(name)));
-    object.emplace_back("state", json::utils::JSONValue(static_cast<std::int64_t>(static_cast<char>(state))));
+    object.emplace_back(
+        "state", json::utils::JSONValue(static_cast<std::int64_t>(static_cast<char>(state))));
     object.emplace_back("cpu_percent", json::utils::JSONValue(cpu_percent));
     object.emplace_back("memory_bytes", json::utils::JSONValue(memory_bytes));
     object.emplace_back("memory_percent", json::utils::JSONValue(memory_percent));
-    object.emplace_back("thread_count", json::utils::JSONValue(static_cast<std::uint64_t>(thread_count)));
+    object.emplace_back("thread_count",
+                        json::utils::JSONValue(static_cast<std::uint64_t>(thread_count)));
 
     return json::utils::JSONValue(std::move(object));
 }
 
-ProcessInfo ProcessInfo::FromJson(json::utils::JSONValue const & value) {
+ProcessInfo ProcessInfo::FromJson(json::utils::JSONValue const& value) {
     ProcessInfo info{};
+    info.starttime_ticks = json::UInt(value, "starttime_ticks").value_or(0);
+    info.cpu_valid = json::Boolean(value, "cpu_valid");
 
     if (auto pid = value["pid"]) {
         if (auto parsed = pid->get().AsInt64()) {
@@ -75,7 +82,7 @@ ProcessInfo ProcessInfo::FromJson(json::utils::JSONValue const & value) {
 json::utils::JSONValue ProcessMetrics::ToJson() const {
     json::utils::JSONArray processes_array{};
     processes_array.reserve(processes.size());
-    for (auto const & process : processes) {
+    for (auto const& process : processes) {
         processes_array.emplace_back(process.ToJson());
     }
 
@@ -90,7 +97,7 @@ json::utils::JSONValue ProcessMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-ProcessMetrics ProcessMetrics::FromJson(json::utils::JSONValue const & value) {
+ProcessMetrics ProcessMetrics::FromJson(json::utils::JSONValue const& value) {
     ProcessMetrics metrics{};
 
     if (auto ts = value["timestamp"]) {
@@ -109,9 +116,9 @@ ProcessMetrics ProcessMetrics::FromJson(json::utils::JSONValue const & value) {
         }
     }
     if (auto processes = value["processes"]) {
-        if (auto const * array = processes->get().AsArray()) {
+        if (auto const* array = processes->get().AsArray()) {
             metrics.processes.reserve(array->size());
-            for (auto const & process_value : *array) {
+            for (auto const& process_value : *array) {
                 metrics.processes.push_back(ProcessInfo::FromJson(process_value));
             }
         }
