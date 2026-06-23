@@ -1,7 +1,7 @@
 /**
  * @file common/models/network_metrics.cpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-18
  *
  * @brief Network metrics model serialization implementation.
@@ -26,7 +26,7 @@ json::utils::JSONValue NetworkMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-NetworkMetrics NetworkMetrics::FromJson(json::utils::JSONValue const & value) {
+NetworkMetrics NetworkMetrics::FromJson(json::utils::JSONValue const& value) {
     NetworkMetrics metrics{};
 
     if (auto ts = value["timestamp"]) {
