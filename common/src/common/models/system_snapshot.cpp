@@ -15,7 +15,8 @@ namespace web_htop::models {
 
 json::utils::JSONValue SystemSnapshot::ToJson() const {
     json::utils::JSONObject object{};
-    object.reserve(7);
+    object.reserve(8);
+    object.emplace_back("telemetry", telemetry.ToJson());
 
     object.emplace_back("timestamp", json::utils::JSONValue(static_cast<std::uint64_t>(timestamp)));
     object.emplace_back("cpu", cpu.ToJson());
@@ -28,8 +29,10 @@ json::utils::JSONValue SystemSnapshot::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-SystemSnapshot SystemSnapshot::FromJson(json::utils::JSONValue const & value) {
+SystemSnapshot SystemSnapshot::FromJson(json::utils::JSONValue const& value) {
     SystemSnapshot snapshot{};
+    if (auto t = value["telemetry"])
+        snapshot.telemetry = TelemetryInfo::FromJson(t->get());
 
     if (auto ts = value["timestamp"]) {
         if (auto parsed = ts->get().AsUInt64()) {
