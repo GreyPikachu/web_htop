@@ -1,460 +1,104 @@
-Логика такого разделения
-
-Смысл этой структуры в том, что каждый уровень решает свою задачу.
-
-Верхний уровень
-common/ — общие модели и инфраструктура;
-server/ — только серверная логика;
-client/ — только клиентская логика;
-tests/ — проверка корректности;
-docs/ — описание архитектуры и API.
-
-
-# 1. Модуль project-setup (Roman)
-
-Соответствует ветке: feature/project-setup
-
-Назначение
-
-Модуль базовой инфраструктуры проекта.
-Он не реализует бизнес-логику мониторинга, но создаёт основу, на которой собираются и запускаются все остальные части системы.
-
-Что входит в модуль
-настройка CMakeLists.txt;
-подключение библиотек;
-структура папок;
-цели сборки;
-общие compile options;
-.gitignore;
-README.md;
-логгеры;
-утилиты разработки;
-скрипты запуска;
-форматирование кода.
-Краткое описание
-
-Это технический фундамент проекта.
-Если этот модуль не сделать нормально, дальше начнётся хаос: у одного разработчика проект собирается, у другого нет; один использует одну структуру папок, другой другую; никто не понимает, как запускать и тестировать систему.
-
-Ответственность модуля
-единая структура проекта;
-единый процесс сборки;
-единый процесс запуска;
-единые технические правила разработки.
-
-
-# 2. Модуль common-models (Maksim)
-
-Соответствует ветке: feature/common-models
-
-Назначение
-
-Общий модуль моделей и контракта обмена данными между сервером и клиентом.
-
-Что входит в модуль
-структуры данных для:
-CPU;
-RAM;
-Disk;
-Network;
-ProcessInfo;
-SystemSnapshot;
-enums;
-типы протокольных сообщений;
-сериализация;
-JSON-представление данных.
-Краткое описание
-
-Этот модуль определяет, какие данные вообще существуют в системе и в каком виде они передаются.
-Он используется одновременно сервером и клиентом, поэтому является общим контрактом всей системы.
-
-Ответственность модуля
-определить единый формат системных метрик;
-определить единый формат списка процессов;
-определить формат snapshot;
-определить формат live-сообщений;
-обеспечить сериализацию и десериализацию в JSON.
-Почему модуль критически важен
-
-Любая ошибка здесь ломает взаимодействие между сервером и клиентом.
-Если сервер сериализует одни поля, а клиент ждёт другие, система не сможет работать корректно.
-
-
-# 3. Модуль project-docs
-
-Соответствует ветке: docs/project-docs
-
-Назначение
-
-Модуль документации проекта.
-
-Что входит в модуль
-architecture.md
-build_run.md
-http_api.md
-live_protocol.md
-data_models.md
-module_responsibilities.md
-другие markdown-файлы с описанием реализации.
-Краткое описание
-
-Этот модуль описывает, как устроен проект, как он запускается, какие у него интерфейсы и как распределяется ответственность между частями системы и разработчиками.
-
-Ответственность модуля
-зафиксировать архитектуру;
-зафиксировать протоколы;
-описать API;
-описать модели данных;
-документировать файлы, модули и этапы реализации.
-Особенность модуля
-
-Это не исполняемый код, а сопровождающая спецификация проекта.
-Но по важности для командной работы этот модуль почти равен коду.
-
-
-# 4. Модуль server-core (Roman) +
-
-Соответствует ветке: feature/server-core
-
-Назначение
-
-Каркас серверного приложения.
-
-Что входит в модуль
-конфиг сервера; +
-main.cpp сервера; +
-ServerApp; +
-ConfigManager; +
-SharedState; +
-запуск и остановка сервера; +
-базовая инициализация; +
-обработка сигналов завершения. +
-Краткое описание +
-
-Этот модуль управляет жизненным циклом серверного приложения.
-Он не собирает метрики и не реализует транспорт, а отвечает за то, чтобы сервер:
-
-корректно стартовал;
-инициализировал подсистемы;
-корректно завершался;
-предоставлял общее состояние другим модулям.
-Ответственность модуля
-точка входа сервера;
-конфигурация сервера;
-общее состояние сервера;
-управление запуском и завершением;
-связывание серверных подсистем в одно приложение.
-
-Что не входит
-сбор метрик;
-процессы;
-TCP transport;
-HTTP handlers.
-
-
-# 5. Модуль server-collectors (Roman)
-
-(снять текущее состояние машины и собрать из него единый snapshot общесистемных метрик)
-
-Соответствует ветке: feature/server-collectors
-
-Назначение
-
-Модуль сбора обычных системных метрик Linux.
-
-Что входит в модуль
-CpuCollector +-
-MemoryCollector +-
-
-остальное пока максим не дописал
-DiskCollector
-NetworkCollector
-возможно LoadavgCollector
-
-MetricsCollector +-
-
-чтение: (через парсинг) +
-/proc/stat
-/proc/meminfo
-/proc/net/dev
-использование statvfs()
-Краткое описание
-
-Этот модуль отвечает за получение текущего состояния системы на уровне общих метрик:
-
-загрузка CPU;
-использование памяти;
-состояние диска;
-сетевой трафик;
-общая нагрузка.
-Ответственность модуля
-читать системные данные Linux;
-вычислять значения метрик;
-формировать итоговый snapshot системного состояния;
-отдавать его в серверное состояние.
-Почему выделен отдельно
-
-Потому что это самостоятельный блок, не связанный напрямую ни с HTTP, ни с TCP, ни с процессами.
-Это именно модуль мониторинга системных ресурсов.
-
-6. Модуль server-processes
-
-Соответствует ветке: feature/server-processes
-
-Назначение
-
-Модуль сбора и обработки информации о процессах Linux.
-
-Что входит в модуль
-обход /proc;
-поиск PID-директорий;
-чтение:
-/proc/[pid]/comm
-/proc/[pid]/stat
-/proc/[pid]/status
-вычисление CPU% по процессу;
-хранение истории по PID;
-сортировка top N процессов;
-ProcessCollector;
-ProcessHistory.
-Краткое описание
-
-Этот модуль отвечает за список процессов и их метрики.
-Он сложнее обычных collectors, потому что работает с большим количеством сущностей, которые могут появляться и исчезать в любой момент.
-
-Ответственность модуля
-получить список процессов;
-собрать их характеристики;
-вычислить память и нагрузку по каждому процессу;
-сохранить историю для вычисления CPU%;
-подготовить список процессов для передачи клиенту.
-Почему это отдельный модуль
-
-Процессы — это отдельная и более сложная часть мониторинга, чем CPU/RAM/disk/network.
-Их удобнее выделить в самостоятельный модуль, чтобы не перегружать обычные collectors.
-
-7. Модуль server-streaming
-
-Соответствует ветке: feature/server-streaming
-
-Назначение
-
-Модуль live-передачи данных от сервера к клиенту через постоянное TCP-соединение.
-
-Что входит в модуль
-TCP server;
-client session;
-приём подключений;
-чтение/запись сообщений;
-рассылка snapshot;
-broadcast;
-обработка live-потока.
-Краткое описание
-
-Этот модуль реализует канал реального времени.
-Именно через него сервер отправляет клиентам актуальные метрики без необходимости каждый раз делать HTTP-запрос.
-
-Ответственность модуля
-принимать новые клиентские подключения;
-поддерживать постоянное соединение;
-передавать snapshot в живом режиме;
-обслуживать нескольких клиентов;
-корректно обрабатывать отключения.
-Почему это отдельный модуль
-
-Потому что live-streaming — это отдельный транспортный слой системы, не связанный напрямую с HTTP API.
-
-8. Модуль server-http-api
-
-Соответствует ветке: feature/server-http-api
-
-Назначение
-
-Модуль HTTP API сервера.
-
-Что входит в модуль
-http_server
-http_handlers
-эндпоинты:
-GET /health
-GET /metrics
-GET /processes
-POST /config/update-interval
-Краткое описание
-
-Этот модуль реализует HTTP-интерфейс сервера для разовых запросов и управляющих действий.
-В отличие от streaming-модуля, здесь используется классическая request-response модель.
-
-Ответственность модуля
-принимать HTTP-запросы;
-маршрутизировать их на обработчики;
-формировать JSON-ответы;
-возвращать текущие метрики и список процессов;
-изменять параметры работы сервера, например интервал обновления.
-Почему это отдельный модуль
-
-Потому что HTTP и live-streaming — разные каналы взаимодействия, с разной логикой, разной отладкой и разными сценариями использования.
-
-9. Модуль client-core
-
-Соответствует ветке: feature/client-core
-
-Назначение
-
-Каркас клиентского приложения.
-
-Что входит в модуль
-main.cpp;
-ClientApp;
-ClientState;
-запуск/остановка клиента;
-хранение последнего snapshot;
-хранение статуса соединения.
-Краткое описание
-
-Этот модуль является основой клиентской программы.
-Он отвечает за жизненный цикл клиента и хранение его состояния, но не реализует сетевое подключение и не рисует интерфейс.
-
-Ответственность модуля
-точка входа клиента;
-управление запуском и завершением;
-хранение актуального snapshot;
-хранение статуса сети;
-связка клиентских подсистем.
-10. Модуль client-network
-
-Соответствует ветке: feature/client-network
-
-Назначение
-
-Модуль сетевого live-подключения клиента к серверу.
-
-Что входит в модуль
-подключение к TCP server;
-чтение live-стрима;
-reconnect;
-stream reader;
-обновление ClientState.
-Краткое описание
-
-Этот модуль обеспечивает постоянную связь клиента с сервером по live-каналу.
-Он получает snapshot-сообщения, разбирает их и обновляет внутреннее состояние клиента.
-
-Ответственность модуля
-установить соединение с сервером;
-читать данные из стрима;
-десериализовать live-сообщения;
-обновлять клиентское состояние;
-восстанавливать соединение после разрыва.
-Почему это отдельный модуль
-
-Потому что сетевое подключение — это отдельный технический слой, который не должен смешиваться с UI и общим каркасом клиента.
-
-11. Модуль client-http-control
-
-Соответствует ветке: feature/client-http-control
-
-Назначение
-
-Модуль HTTP-взаимодействия клиента с сервером.
-
-Что входит в модуль
-вызовы к HTTP API сервера;
-запросы:
-получить /metrics;
-получить /processes;
-поменять интервал обновления;
-возможные будущие управляющие действия.
-Краткое описание
-
-Этот модуль нужен для управления сервером и выполнения разовых запросов по HTTP.
-Он не связан с постоянным live-стримом, а работает как отдельный control-канал.
-
-Ответственность модуля
-выполнять HTTP-запросы;
-получать и разбирать HTTP-ответы;
-вызывать управляющие действия;
-предоставлять HTTP-функции клиентскому UI.
-12. Модуль client-terminal-ui
-
-Соответствует ветке: feature/client-terminal-ui
-
-Назначение
-
-Основной модуль терминального интерфейса клиента.
-
-Что входит в модуль
-TerminalUi;
-dashboard;
-status bar;
-help line;
-форматирование значений;
-цветовая индикация.
-Краткое описание
-
-Этот модуль отвечает за визуальное отображение основных метрик в консоли.
-Он формирует главное окно клиентского интерфейса и показывает пользователю состояние системы и соединения.
-
-Ответственность модуля
-отрисовка основного терминального интерфейса;
-показ CPU/RAM/disk/network;
-показ статуса соединения;
-показ подсказок по управлению;
-визуальное оформление данных.
-Что не входит
-таблица процессов, если она остаётся отдельным модулем.
-13. Модуль client-process-table
-
-Соответствует ветке: feature/client-process-table
-
-Назначение
-
-Модуль отображения и обработки списка процессов на клиенте.
-
-Что входит в модуль
-таблица процессов;
-сортировка;
-фильтрация;
-форматирование колонок.
-Краткое описание
-
-Этот модуль отвечает за отдельный сложный блок UI — список процессов.
-Он работает поверх данных, полученных от сервера, и предоставляет пользователю удобный способ просматривать процессы.
-
-Ответственность модуля
-вывод таблицы процессов;
-сортировка по CPU, памяти, PID или имени;
-фильтрация списка;
-форматирование колонок;
-интеграция с общим терминальным интерфейсом.
-Почему это отдельный модуль
-
-Потому что таблица процессов — самый тяжёлый и насыщенный элемент клиентского интерфейса, и её удобно развивать независимо от основного dashboard.
-
-14. Модуль core-tests
-
-Соответствует ветке: test/core-tests
-
-Назначение
-
-Модуль тестирования базовых компонентов проекта.
-
-Что входит в модуль
-тесты сериализации;
-тесты протокола;
-тесты collectors;
-тесты process collector;
-тесты сортировки и фильтрации.
-Краткое описание
-
-Этот модуль нужен для проверки корректности наиболее важных частей системы: моделей данных, протокола, вычислений и клиентской логики отображения процессов.
-
-Ответственность модуля
-проверка корректности JSON-сериализации;
-проверка корректности live-протокола;
-проверка расчётов CPU/RAM/network;
-проверка process collector;
-проверка client-side сортировки и фильтрации.
-Почему это отдельный модуль
-
-Потому что тесты — это не feature и не инфраструктура, а самостоятельный слой контроля качества.
+# Architecture
+
+## Ownership
+
+The server has two threads in steady state. The foreground thread owns the reactor,
+listeners, all accepted sockets, session queues and network counters. The sampling
+`std::jthread` owns the collectors and their previous observations. It never calls
+`send`, routes an HTTP request, or touches a session.
+
+`LinuxSource` is the external-data boundary. Production reads Linux files;
+deterministic tests supply the same interface with fixtures. Text parsing and
+counter arithmetic are independent functions. A collector failure becomes a
+section status; other sections still run. Whole-generation serialization failure
+leaves the previous published generation intact and eventually fails readiness.
+
+## Publication
+
+A generation is fully assembled, encoded, framed and timestamped before publication.
+`SharedState` release-stores a `shared_ptr<const PublishedSnapshot>`; readers use
+an acquire-load and retain the generation they selected. Both the object and its
+encoded strings are immutable after publication.
+
+Acquire/release establishes visibility of the initialized object. `shared_ptr`
+provides reclamation while a reader still owns an old generation. It does not make
+the publication primitive lock-free: the implementation reports `is_lock_free()`
+in diagnostics. A custom reclamation scheme would need a measured reason and a
+separate correctness argument.
+
+A generation is an application-level publication boundary, not a transaction
+against the kernel. CPU, memory and process data are read sequentially. Collection
+start/end times and per-section durations expose the resulting sampling window.
+The selected `/proc` mount can reflect a container's namespace. The scope label is
+`procfs-view`; it deliberately does not claim host-wide visibility.
+
+## Reactor
+
+The reactor uses level-triggered epoll. Each turn limits accepts to 32 and each
+session write to 64 KiB. HTTP reads are bounded by the 8 KiB header limit. Readiness
+remains registered when a budget is exhausted; the next turn continues the work.
+
+Epoll event data contains a monotonically increasing session token, not a raw FD.
+An event left in a returned batch cannot accidentally address a new session after
+the kernel reuses a descriptor number. Only the reactor closes network descriptors.
+`UniqueFd` handles ownership transfer and every failure path.
+
+An `eventfd` makes publication visible to the I/O loop. Its counter is a wakeup,
+not a generation queue. Several notifications can collapse into one; the reactor
+loads the latest generation. A 100 ms timerfd drives deadline checks and also
+provides a recovery poll for publication notifications.
+
+A full HTTP response is selected from one generation. One request is served per
+connection; there is no keep-alive or request-body support. HTTP and TCP share the
+same readiness loop but have separate session states.
+
+## Backpressure
+
+The current frame has an immutable byte buffer and a send offset. Until any byte
+is sent, a newer frame can replace it. Once sending starts, a second slot holds the
+latest pending frame. Replacing a pending frame increments the superseded counter.
+Finishing the current frame promotes the pending frame.
+
+The invariant is that the bytes of a frame are never interleaved with a newer
+frame. Each client either receives a complete generation or observes a disconnect;
+sequence numbers tell it which complete generations it skipped.
+
+The global 64 MiB limit sums remaining bytes per session, even when a buffer is
+shared. This deliberately conservative accounting can reject a connection before
+physical user-space memory reaches that size. It does not account for kernel
+buffers, allocator overhead or collector working memory. The process response
+limit bounds transmission, not how many `/proc` entries must be inspected.
+
+A write deadline measures time without progress. It is not reset by queuing a new
+generation. Header deadlines are absolute from accept, so sending one byte at a
+time cannot keep an HTTP session alive indefinitely.
+
+## Lifecycle
+
+The foreground thread blocks SIGINT/SIGTERM before creating the worker and accepts
+them through signalfd. There is no asynchronous server handler executing C++ code.
+Both listeners must bind successfully before the collector starts. RAII rolls back
+partial startup.
+
+On shutdown, the reactor releases sessions, then the worker receives a stop request.
+Its timed wait is stop-aware, and the process scan checks cancellation between PIDs.
+Sockets cannot hold shutdown in a blocking send/recv. A kernel filesystem operation
+such as statvfs can still block inside the kernel; cancellation is cooperative and
+cannot promise a hard deadline for an unresponsive filesystem. systemd has a final
+service-level timeout for that case.
+
+## Client
+
+The terminal owns one poll loop. Streaming and diagnostic HTTP connections are
+nonblocking, each with their own state and deadline. The UI refreshes independently
+of received generations. DNS resolution happens once before terminal mode is entered;
+its timeout follows libc resolver configuration.
+
+Received generations are decoded and optionally recorded. Freeze holds the visible
+generation, not the socket reader. Replay reads JSONL at four generations per second;
+it preserves stored sequence numbers and timestamps, not original wall-clock timing.
+
+The renderer uses a bounded character canvas. Remote strings are converted to a
+printable ASCII presentation before being placed in cells. ANSI control sequences
+are emitted only by the renderer. Terminal settings, alternate screen and cursor
+visibility are restored on normal exit and SIGINT/SIGTERM.
