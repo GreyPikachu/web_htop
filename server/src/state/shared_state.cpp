@@ -1,64 +1,20 @@
-/**
- * @file server/src/state/shared_state.cpp
- *
- * @author Roman Snitko
- * @date 2026-04-16
- *
- * @brief SharedState implementation.
- */
-
 #include "server/state/shared_state.hpp"
-
+#include "common/json/access.hpp"
 namespace web_htop::server {
-
-void SharedState::reset() {
-    running_.store(false);
-    std::lock_guard<std::mutex> lk(mutex_);
-    snapshot_ = {};
-    processes_.clear();
-    module_ready_.clear();
+void SharedState::Publish(models::SystemSnapshot snapshot) {
+    auto next = std::make_shared<PublishedSnapshot>();
+    auto begin = std::chrono::steady_clock::now();
+    next->snapshot = std::move(snapshot);
+    next->json = std::make_shared<std::string const>(protocol::Encode(next->snapshot));
+    next->frame = std::make_shared<std::string const>(protocol::Frame(*next->json));
+    auto processes = next->snapshot.process.ToJson();
+    json::Add(*processes.AsObject(), "sequence", next->snapshot.telemetry.sequence);
+    json::Add(*processes.AsObject(), "instance_id", next->snapshot.telemetry.instance_id);
+    json::Add(*processes.AsObject(), "truncated", next->snapshot.telemetry.processes_truncated);
+    next->processes_json = std::make_shared<std::string const>(processes.ToString());
+    next->published_at = std::chrono::steady_clock::now();
+    next->encode_us = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(next->published_at - begin).count());
+    latest_.store(std::move(next), std::memory_order_release);
 }
-
-void SharedState::set_running(bool value) noexcept {
-    running_.store(value);
-}
-
-bool SharedState::is_running() const noexcept {
-    return running_.load();
-}
-
-void SharedState::update_system_snapshot(const web_htop::models::SystemSnapshot& snapshot) {
-    std::lock_guard<std::mutex> lk(mutex_);
-    snapshot_ = snapshot;
-}
-
-web_htop::models::SystemSnapshot SharedState::get_system_snapshot() const {
-    std::lock_guard<std::mutex> lk(mutex_);
-    return snapshot_;
-}
-
-void SharedState::update_processes(const std::vector<ProcessEntryStub>& processes) {
-    std::lock_guard<std::mutex> lk(mutex_);
-    processes_ = processes;
-}
-
-std::vector<ProcessEntryStub> SharedState::get_processes() const {
-    std::lock_guard<std::mutex> lk(mutex_);
-    return processes_;
-}
-
-void SharedState::set_module_ready(const std::string& module_name, bool ready) {
-    std::lock_guard<std::mutex> lk(mutex_);
-    module_ready_[module_name] = ready;
-}
-
-bool SharedState::is_module_ready(const std::string& module_name) const {
-    std::lock_guard<std::mutex> lk(mutex_);
-    const auto it = module_ready_.find(module_name);
-    if (it == module_ready_.end()) {
-        return false;
-    }
-    return it->second;
-}
-
-}  // namespace web_htop::server
+} // namespace web_htop::server
