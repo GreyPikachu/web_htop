@@ -1,51 +1,35 @@
-if(NOT WEB_HTOP_BUILD_TESTS)
-    return()
+add_executable(web_htop_test_core core/test_core.cpp)
+target_link_libraries(web_htop_test_core PRIVATE web_htop_server_core web_htop_client_core)
+add_test(NAME core COMMAND web_htop_test_core)
+set_tests_properties(core PROPERTIES TIMEOUT 30)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+if(WEB_HTOP_BUILD_APPS)
+    add_test(NAME integration COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/integration/test_runtime.py
+        --server $<TARGET_FILE:web_htop_server> --client $<TARGET_FILE:web_htop_client>)
+    set_tests_properties(integration PROPERTIES TIMEOUT 60)
 endif()
-
-include(FetchContent)
-enable_testing()
-include(GoogleTest)
-
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-)
-
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-add_executable(web_htop_test_json_parser
-    common/test_json_parser.cpp
-)
-
-target_link_libraries(web_htop_test_json_parser
-    PRIVATE
-        web_htop_common
-        GTest::gtest_main
-)
-
-gtest_discover_tests(web_htop_test_json_parser)
-
-add_executable(web_htop_test_serialization
-    common/test_serialization.cpp
-)
-
-target_link_libraries(web_htop_test_serialization
-    PRIVATE
-        web_htop_common
-        GTest::gtest_main
-)
-
-gtest_discover_tests(web_htop_test_serialization)
-
-add_executable(web_htop_test_http_router
-    server/test_http_router.cpp
-)
-
-target_link_libraries(web_htop_test_http_router
-    PRIVATE
-        web_htop_server_core
-        GTest::gtest_main
-)
-
-gtest_discover_tests(web_htop_test_http_router)
+if(WEB_HTOP_BUILD_LEGACY_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
+    foreach(suite json_parser serialization)
+        add_executable(web_htop_test_${suite} common/test_${suite}.cpp)
+        target_link_libraries(web_htop_test_${suite} PRIVATE web_htop_common GTest::gtest_main)
+        gtest_discover_tests(web_htop_test_${suite})
+    endforeach()
+endif()
+if(WEB_HTOP_BUILD_FUZZERS)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "libFuzzer requires Clang")
+    endif()
+    # Instrument the code under test, not just the fuzz entry point.
+    foreach(target web_htop_common web_htop_server_core)
+        target_compile_options(${target} PRIVATE -fsanitize=fuzzer-no-link,address,undefined)
+    endforeach()
+    target_link_options(web_htop_options INTERFACE -fsanitize=address,undefined)
+    foreach(target json frame proc)
+        add_executable(web_htop_fuzz_${target} fuzz/fuzz_${target}.cpp)
+        target_link_libraries(web_htop_fuzz_${target} PRIVATE web_htop_server_core)
+        target_compile_options(web_htop_fuzz_${target} PRIVATE -fsanitize=fuzzer,address,undefined)
+        target_link_options(web_htop_fuzz_${target} PRIVATE -fsanitize=fuzzer,address,undefined)
+    endforeach()
+endif()
