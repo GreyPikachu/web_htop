@@ -1,7 +1,7 @@
 /**
  * @file tests/common/test_json_parser.cpp
  *
- * @author Maksim Vashkevich
+ * @author Roman Snitko
  * @date 2026-04-13
  *
  * @brief Unit tests for JSON parser behavior and edge cases.
@@ -26,11 +26,10 @@ namespace {
  */
 TEST(JSONParserTest, VerifyPrimitiveJSONParsing) {
     auto parsed = web_htop::json::Parse(
-        R"({"num":2281337666,"ok":true,"name":"compukter","some_ratio":50.05})"
-    );
+        R"({"num":2281337666,"ok":true,"name":"compukter","some_ratio":50.05})");
     ASSERT_TRUE(parsed.has_value());
 
-    auto const & root = parsed->value;
+    auto const& root = parsed->value;
     EXPECT_TRUE(root.IsObject());
 
     auto num = root["num"];
@@ -60,12 +59,11 @@ TEST(JSONParserTest, VerifyPrimitiveJSONParsing) {
  * @details Validates newline escape processing and UTF-16 surrogate pair decoding.
  */
 TEST(JSONParserTest, VerifyEscapedAndUnicodeJSONParsing) {
-    auto parsed = web_htop::json::Parse(
-        R"({"random_text":"line\nA\u0042","random_emoji":"\uD83D\uDE00"})"
-    );
+    auto parsed =
+        web_htop::json::Parse(R"({"random_text":"line\nA\u0042","random_emoji":"\uD83D\uDE00"})");
     ASSERT_TRUE(parsed.has_value());
 
-    auto const & root = parsed->value;
+    auto const& root = parsed->value;
 
     auto text = root["random_text"];
     ASSERT_TRUE(text.has_value());
@@ -87,7 +85,7 @@ TEST(JSONParserTest, VerifyArrayParsing) {
     auto parsed = web_htop::json::Parse("[228,1337,666]");
     ASSERT_TRUE(parsed.has_value());
 
-    auto const & root = parsed->value;
+    auto const& root = parsed->value;
     EXPECT_TRUE(root.IsArray());
     EXPECT_EQ(root.size(), 3U);
 
@@ -116,15 +114,13 @@ TEST(JSONParserTest, VerifyArrayParsing) {
  * @details Confirms correct parsing when spaces, tabs and newlines vary.
  */
 TEST(JSONParserTest, VerifyArbitraryWhitespaceParsing) {
-    auto parsed = web_htop::json::Parse(
-        "{      \"num\"    :      1,\n"
-        "   \"random_array\"  :   [   true,   false ,   null   ],\n"
-        "\t\"ok\"    :    {   \"x\" :  \"ok\"   }\n"
-        "      }"
-    );
+    auto parsed = web_htop::json::Parse("{      \"num\"    :      1,\n"
+                                        "   \"random_array\"  :   [   true,   false ,   null   ],\n"
+                                        "\t\"ok\"    :    {   \"x\" :  \"ok\"   }\n"
+                                        "      }");
     ASSERT_TRUE(parsed.has_value());
 
-    auto const & root = parsed->value;
+    auto const& root = parsed->value;
     ASSERT_TRUE(root.IsObject());
 
     auto num = root["num"];
@@ -134,7 +130,7 @@ TEST(JSONParserTest, VerifyArbitraryWhitespaceParsing) {
 
     auto random_array = root["random_array"];
     ASSERT_TRUE(random_array.has_value());
-    auto const * array = random_array->get().AsArray();
+    auto const* array = random_array->get().AsArray();
     ASSERT_NE(array, nullptr);
     ASSERT_EQ(array->size(), 3U);
     EXPECT_TRUE(array->at(0).AsBool().value());
@@ -143,7 +139,7 @@ TEST(JSONParserTest, VerifyArbitraryWhitespaceParsing) {
 
     auto ok = root["ok"];
     ASSERT_TRUE(ok.has_value());
-    auto const * obj = ok->get().AsObject();
+    auto const* obj = ok->get().AsObject();
     ASSERT_NE(obj, nullptr);
     ASSERT_EQ(obj->size(), 1U);
     EXPECT_EQ(obj->at(0).first, std::string_view("x"));
@@ -191,13 +187,13 @@ TEST(JSONParserTest, VerifyEmptyContainersParsing) {
 /**
  * @test JSONParserTest.VerifyFloatingPointAndSpecialNumbersParsing
  * @brief Verifies floating-point and exponent number parsing semantics.
- * @details Covers exponent notation, signed zero and underflow-to-zero behavior.
+ * @details Covers exponent notation, signed zero and rejection of unrepresentable exponents.
  */
 TEST(JSONParserTest, VerifyFloatingPointAndSpecialNumbersParsing) {
     auto parsed = web_htop::json::Parse(R"({"a":1e3,"b":-2E-2,"c":0.0})");
     ASSERT_TRUE(parsed.has_value());
 
-    auto const & root = parsed->value;
+    auto const& root = parsed->value;
     auto a = root["a"];
     ASSERT_TRUE(a.has_value());
     ASSERT_TRUE(a->get().AsDouble().has_value());
@@ -219,9 +215,8 @@ TEST(JSONParserTest, VerifyFloatingPointAndSpecialNumbersParsing) {
     EXPECT_EQ(minus_zero->value.AsInt64().value(), 0LL);
 
     auto underflow_exp = web_htop::json::Parse("1e-1000");
-    ASSERT_TRUE(underflow_exp.has_value());
-    ASSERT_TRUE(underflow_exp->value.AsDouble().has_value());
-    EXPECT_DOUBLE_EQ(underflow_exp->value.AsDouble().value(), 0.0);
+    // A value outside double's range is rejected instead of becoming a measured zero.
+    EXPECT_FALSE(underflow_exp.has_value());
 }
 
 /**
@@ -231,11 +226,10 @@ TEST(JSONParserTest, VerifyFloatingPointAndSpecialNumbersParsing) {
  */
 TEST(JSONParserTest, VerifyNumericBoundariesAndIncompatibleAccessors) {
     auto parsed = web_htop::json::Parse(
-        R"({"i64_min":-9223372036854775808,"i64_max":9223372036854775807,"u64_max":18446744073709551615,"neg":-1,"flt":1.5,"text":"x"})"
-    );
+        R"({"i64_min":-9223372036854775808,"i64_max":9223372036854775807,"u64_max":18446744073709551615,"neg":-1,"flt":1.5,"text":"x"})");
     ASSERT_TRUE(parsed.has_value());
 
-    auto const & root = parsed->value;
+    auto const& root = parsed->value;
 
     auto i64_min = root["i64_min"];
     ASSERT_TRUE(i64_min.has_value());
@@ -294,7 +288,7 @@ TEST(JSONParserTest, RejectMalformedStringsAndUnicode) {
     EXPECT_FALSE(web_htop::json::Parse(R"({"s":"\uD83D\uD83D"})").has_value());
     EXPECT_FALSE(web_htop::json::Parse("{\"s\":\"unterminated}").has_value());
     std::string const contains_soh = "{\"a\":\"\x01\"}";
-    std::string const contains_us  = "{\"a\":\"\x1F\"}";
+    std::string const contains_us = "{\"a\":\"\x1F\"}";
 
     EXPECT_FALSE(web_htop::json::Parse(contains_soh).has_value());
     EXPECT_FALSE(web_htop::json::Parse(contains_us).has_value());
