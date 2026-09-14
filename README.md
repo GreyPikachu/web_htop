@@ -11,7 +11,7 @@
 
 WEB HTOP collects live Linux metrics, publishes coherent snapshots, exposes them through HTTP and framed TCP, and renders them in an interactive terminal console. It is designed around explicit ownership, bounded resource usage, graceful shutdown, and metrics whose meaning can be explained.
 
-[Quick start](#quick-start) · [Why WEB HTOP](#why-web-htop) · [Architecture](#architecture) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
+[Quick start](#quick-start) · [Why WEB HTOP](#why-web-htop) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
 
 </div>
 
@@ -129,18 +129,6 @@ Example health response:
 ```
 
 The TCP stream carries length-prefixed JSON snapshots. A frame includes a protocol version, server instance identifier, and monotonically increasing sequence number so reconnects and restarts can be detected explicitly.
-
-## Architecture
-
-```mermaid
-flowchart TD
-    P["Linux sources<br/>/proc В· /sys В· PSI В· cgroup v2"] --> C["Collector pipeline"]
-    C --> S["Immutable snapshot"]
-    S --> R["epoll runtime"]
-    R --> T["Terminal client"]
-    R --> H["HTTP API"]
-    R --> J["JSONL recorder"]
-```
 
 Collectors build the next snapshot away from readers. Publication swaps in one complete immutable version, so a consumer never observes a half-updated system state. The network layer consumes that published state; it does not run collectors while holding transport locks.
 
