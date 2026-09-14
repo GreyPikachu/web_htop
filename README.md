@@ -13,7 +13,7 @@
 
 WEB HTOP collects live Linux metrics, publishes coherent snapshots, exposes them through HTTP and framed TCP, and renders them in an interactive terminal console. It is designed around explicit ownership, bounded resource usage, graceful shutdown, and metrics whose meaning can be explained.
 
-[Quick start](#quick-start) В· [Why WEB HTOP](#why-web-htop) В· [Architecture](#architecture) В· [HTTP API](#http-api) В· [Engineering notes](#engineering-notes)
+[Quick start](#quick-start) · [Why WEB HTOP](#why-web-htop) · [Architecture](#architecture) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
 
 </div>
 
