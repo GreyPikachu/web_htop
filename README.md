@@ -219,22 +219,3 @@ scripts/      build and run helpers
 docs/         architecture and operational notes
 ```
 
-## Documentation
-
-- [Build and run guide](docs/build_run.md)
-- [Architecture notes](docs/architecture.md)
-- [Branch and module plan](docs/description_branches.md)
-
-## Roadmap
-
-- [ ] Reproducible latency and throughput benchmarks
-- [ ] Long-running soak tests with slow and reconnecting clients
-- [ ] Additional cgroup v2 controller metrics
-- [ ] Prometheus compatibility and dashboard examples
-- [ ] Kernel-version matrix for the optional eBPF profiler
-
-## Author
-
-Designed and developed by **Roman Snitko**.
-
-If WEB HTOP helped you understand a difficult Linux performance problem, consider starring the repository or opening an issue with a reproducible workload.
