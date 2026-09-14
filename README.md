@@ -1,7 +1,5 @@
 <div align="center">
 
-<img width="1672" height="941" alt="web-htop-hero" src="https://github.com/user-attachments/assets/788d345e-d3c3-4ead-800d-ea4cec5981c7" />
-
 # WEB HTOP
 
 **A real-time Linux telemetry engine built for the cases where a pretty CPU bar is not enough.**
