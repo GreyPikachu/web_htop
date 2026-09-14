@@ -1,114 +1,236 @@
-# web_htop
+<div align="center">
 
-A Linux telemetry workstation: a C++20 sampling engine, a bounded HTTP/TCP reactor,
-and a terminal client with live history, process exploration, recording and replay.
+<img src="docs/images/web-htop-hero.png" alt="WEB HTOP вЂ” Linux telemetry, under pressure" width="100%">
 
-The server reads the selected procfs view, publishes immutable generations and
-encodes each generation once. One I/O thread owns all sockets; a separate sampling
-worker owns collector history. A subscriber that stops reading does not hold a
-lock needed by another subscriber or by the collector.
+# WEB HTOP
 
-## Build
+**A real-time Linux telemetry engine built for the cases where a pretty CPU bar is not enough.**
 
-Linux, a C++20 compiler (GCC 12+ with recent libstdc++, or Clang with an equivalent
-standard library), CMake 3.20+, Python 3 for tests. GCC 13 is used for local validation.
-The default build does not download dependencies.
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus)](https://en.cppreference.com/w/cpp/20)
+[![Platform](https://img.shields.io/badge/platform-Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](https://kernel.org/)
+[![Build](https://img.shields.io/badge/build-CMake-064F8C?style=flat-square&logo=cmake)](https://cmake.org/)
+[![Network](https://img.shields.io/badge/I%2FO-epoll-00C7D9?style=flat-square)](https://man7.org/linux/man-pages/man7/epoll.7.html)
+
+WEB HTOP collects live Linux metrics, publishes coherent snapshots, exposes them through HTTP and framed TCP, and renders them in an interactive terminal console. It is designed around explicit ownership, bounded resource usage, graceful shutdown, and metrics whose meaning can be explained.
+
+[Quick start](#quick-start) В· [Why WEB HTOP](#why-web-htop) В· [Architecture](#architecture) В· [HTTP API](#http-api) В· [Engineering notes](#engineering-notes)
+
+</div>
+
+---
+
+## Why WEB HTOP?
+
+Most terminal monitors answer one question: what is using my CPU right now?
+
+WEB HTOP is built for the next set of questions:
+
+- Is the machine busy, or are workloads stalled by CPU, memory, or I/O pressure?
+- Which cgroup is consuming the resources?
+- Are network counters healthy, and how quickly is traffic moving?
+- Is telemetry still fresh, or is a collector unavailable or warming up?
+- Can one slow client stall every other observer?
+- Can the server stop cleanly while connections and collectors are active?
+
+The result is closer to a compact telemetry service than an `htop` clone: one collector pipeline, multiple read-only consumers, a terminal dashboard, and machine-readable APIs.
+
+## Highlights
+
+| Area | What WEB HTOP provides |
+|---|---|
+| **System telemetry** | CPU, per-core load, memory, swap, disks, network interfaces, uptime, load average, and processes |
+| **Linux pressure** | PSI signals for CPU, memory, and I/O, plus cgroup v2 resource visibility |
+| **Process identity** | Samples keyed by PID and process start time, avoiding false deltas after PID reuse |
+| **Coherent reads** | Immutable snapshots published as a single version to terminal, TCP, and HTTP readers |
+| **Network runtime** | Linux `epoll`, framed TCP telemetry, HTTP endpoints, deadlines, and bounded client queues |
+| **Slow-client isolation** | Latest-snapshot delivery prevents an observer that stopped reading from blocking everyone else |
+| **Diagnostics** | Collector freshness, transport counters, session state, and explicit warm-up/unavailable states |
+| **Offline analysis** | JSONL recording and replay for debugging telemetry without a live server |
+
+## Quick Start
+
+WEB HTOP targets Linux and uses CMake with a C++20 compiler.
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWEB_HTOP_BUILD_TESTS=ON
-cmake --build build -j4
-ctest --test-dir build --output-on-failure --no-tests=error
+git clone https://github.com/RomanSnitko/web_htop.git
+cd web_htop
+
+cmake -S . -B build \
+  -DWEB_HTOP_BUILD_APPS=ON \
+  -DWEB_HTOP_BUILD_TESTS=ON
+
+cmake --build build -j"$(nproc)"
+ctest --test-dir build --output-on-failure
 ```
 
-CMake presets require CMake 3.21+. `cmake --preset asan` selects the AddressSanitizer
-build; `tsan` selects ThreadSanitizer. Run these in separate build directories.
-The retained GoogleTest codec suites are optional: install GoogleTest development
-files and set `-DWEB_HTOP_BUILD_LEGACY_TESTS=ON`.
-
-## Run
+Start the telemetry server:
 
 ```bash
 ./build/server/web_htop_server
+```
+
+Open the terminal console in another shell:
+
+```bash
 ./build/client/web_htop_client localhost 9999 8080
 ```
 
-The default bind address is `127.0.0.1`. Both ports are configurable; use `--help`
-for the complete option list. Native Linux and WSL2 are supported environments.
-
-The client provides Overview, Process Explorer, I/O, Pressure Transport and CPU Matrix
-workspaces. Press `h` for keys. Use `c/m/p/t` to sort, `/` to filter, `j/k` to scroll,
-and Space to freeze the visible generation while acquisition continues. A terminal
-of at least 80 columns and 26 rows is needed for the full workspace; 120 x 40 is a
-comfortable size. The palette is intentionally subdued.
+Or use the helper scripts:
 
 ```bash
-# Capture received generations; the file is appended, never truncated.
-./build/client/web_htop_client localhost 9999 8080 --record session.jsonl
-
-# Inspect the same data without a running server (four generations per second).
-./build/client/web_htop_client --replay session.jsonl
-
-# Machine-readable output. A non-TTY client also emits JSONL.
-./build/client/web_htop_client localhost 9999 8080 --once
-
-# Observe a specific cgroup v2 directory in addition to procfs metrics.
-./build/server/web_htop_server --cgroup /sys/fs/cgroup/my.slice
+bash scripts/run_server.sh
+bash scripts/run_client.sh localhost 9999 8080
 ```
 
-Remote access can use an SSH tunnel for both interfaces, while the server remains
-bound to loopback:
+## One Console, Several Views
+
+The client separates the system into focused screens instead of compressing every number into one table:
+
+1. **System** вЂ” host health, CPU, memory, disk, network, and freshness.
+2. **Processes** вЂ” sortable process telemetry with interactive filtering.
+3. **CPU Matrix** вЂ” per-core utilization using the real Linux CPU identifiers.
+4. **Pressure** вЂ” CPU, memory, and I/O PSI signals.
+5. **Cgroups** вЂ” resource consumption and limits from cgroup v2.
+6. **Transport** вЂ” active sessions, queued output, dropped snapshots, and network health.
+
+The UI keeps receiving telemetry while a view is frozen for inspection. Recorded JSONL sessions can be replayed later, which makes intermittent performance problems easier to study and demonstrations reproducible.
+
+## HTTP API
+
+The server exposes a small read-only API on port `8080` by default.
 
 ```bash
-ssh -N -L 9999:127.0.0.1:9999 -L 8080:127.0.0.1:8080 user@host
+# Liveness and telemetry readiness
+curl http://127.0.0.1:8080/health
+
+# Current system snapshot
+curl http://127.0.0.1:8080/metrics
+
+# Current process sample
+curl http://127.0.0.1:8080/processes
 ```
 
-## Interfaces
+Example health response:
 
-| Endpoint | Meaning |
-| --- | --- |
-| `/health` | I/O loop is alive |
-| `/ready` | CPU, memory and process collection are healthy and fresh |
-| `/metrics` | Complete current generation, including provenance and optional sections |
-| `/processes` | The transmitted top-K process set, with generation and truncation metadata |
-| `/diagnostics` | Sessions, queue usage, dropped snapshots, timeouts and encoding cost |
-| `/exporter` | Low-cardinality Prometheus metrics about the monitor itself |
+```json
+{
+  "status": "ready",
+  "sequence": 1842,
+  "snapshot_age_ms": 37,
+  "collectors": {
+    "cpu": "ready",
+    "memory": "ready",
+    "network": "ready",
+    "processes": "ready"
+  }
+}
+```
 
-TCP uses a four-byte big-endian length followed by JSON, protocol version 2.
-Server and client from this revision must be upgraded together.
+The TCP stream carries length-prefixed JSON snapshots. A frame includes a protocol version, server instance identifier, and monotonically increasing sequence number so reconnects and restarts can be detected explicitly.
 
-## Performance and failure behavior
+## Architecture
 
-The stream retains at most one in-flight frame and one pending frame per session.
-A pending generation can be superseded; a partially written frame cannot. Logical
-queued bytes across all sessions are capped at 64 MiB. These are delivery limits,
-not a bound on the process collector's working set or the kernel's socket memory.
+```mermaid
+flowchart TD
+    P["Linux sources<br/>/proc В· /sys В· PSI В· cgroup v2"] --> C["Collector pipeline"]
+    C --> S["Immutable snapshot"]
+    S --> R["epoll runtime"]
+    R --> T["Terminal client"]
+    R --> H["HTTP API"]
+    R --> J["JSONL recorder"]
+```
 
-Measure the actual workload before making throughput claims:
+Collectors build the next snapshot away from readers. Publication swaps in one complete immutable version, so a consumer never observes a half-updated system state. The network layer consumes that published state; it does not run collectors while holding transport locks.
+
+## Engineering Notes
+
+### Resource ownership is visible in the types
+
+File descriptors are managed by a move-only RAII owner. Connection state and descriptor ownership are separate concerns: a failed session may be dead, but its descriptor still has exactly one owner responsible for closing it.
+
+Background work uses `std::jthread` and cooperative cancellation through `std::stop_token`. Shutdown stops accepting clients, wakes pending work, closes sessions, and joins workers in a defined order.
+
+### Slow clients do not become global backpressure
+
+Every client has a bounded output state. Dashboard delivery follows a **latest wins** policy: a partially transmitted frame is completed, one newest snapshot is retained, and obsolete pending snapshots may be replaced. This preserves TCP framing while keeping memory bounded.
+
+The server tracks dropped snapshots and clients that make no progress, making overload visible instead of hiding it behind growing queues.
+
+### Metrics have explicit semantics
+
+- Durations and rates use monotonic time rather than wall-clock time.
+- A first sample is `warming_up`; it is not silently reported as a zero rate.
+- Counter regressions establish a new baseline instead of producing an unsigned spike.
+- Network rates and byte units are named consistently.
+- Process CPU history uses `(pid, starttime)` rather than PID alone.
+- Missing, stale, unavailable, and valid-zero values remain distinct.
+
+### Read-only by design
+
+WEB HTOP observes the machine; it does not terminate processes or change cgroup limits. The default workflow is suitable for local diagnosis, remote observation through a protected tunnel, testing, and recorded-session analysis.
+
+## Verification
+
+Run the complete test suite:
 
 ```bash
-python3 scripts/benchmark.py --server ./build/server/web_htop_server \
-    --processes 1000 --clients 10 --requests 200 --output benchmark.json
+ctest --test-dir build --output-on-failure
 ```
 
-The benchmark records its environment and raw measurements. Integration tests
-separately cover stalled readers, partial requests, disconnects and shutdown.
+The test strategy covers more than parsers and happy paths:
 
-## Optional scheduler profiler
+- partial TCP reads and writes;
+- multiple frames received together;
+- stalled HTTP and TCP clients;
+- counter resets and collector warm-up;
+- PID reuse;
+- shutdown while network operations are active;
+- JSON ownership and validation boundaries.
 
-`tools/scheduler` contains a separate libbpf/CO-RE program for system-wide run-queue
-latency histograms. It is opt-in, requires kernel BTF and BPF privileges, and is not
-loaded by the ordinary server. See [scheduler profiler](docs/scheduler.md) for
-build instructions, measurement semantics and the kernel validation gate.
+Sanitizer builds are recommended while changing concurrency or ownership code:
+
+```bash
+cmake -S . -B build-asan \
+  -DWEB_HTOP_BUILD_TESTS=ON \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+
+cmake --build build-asan -j"$(nproc)"
+ctest --test-dir build-asan --output-on-failure
+```
+
+## Experimental: Scheduler Latency
+
+An optional CO-RE/eBPF profiler can extend utilization metrics with scheduler latency: the time runnable work spends waiting before it is placed on a CPU. It is intentionally separate from the core runtime, which continues to work without eBPF support or elevated privileges.
+
+Kernel capabilities, BTF availability, and permissions vary by system; treat this module as experimental and validate it on the target kernel.
+
+## Project Layout
+
+```text
+client/       interactive terminal console
+server/       collection, snapshot publication, and network runtime
+common/       models, framing, JSON, and shared utilities
+tests/        unit, parser, lifecycle, and socket-level tests
+scripts/      build and run helpers
+docs/         architecture and operational notes
+```
 
 ## Documentation
 
-- [Applying the standalone refactor](docs/apply_refactor.md)
-- [Executed validation](docs/validation.md)
-- [Build and operations](docs/build_run.md)
-- [Architecture and ownership](docs/architecture.md)
-- [Metric definitions](docs/metrics.md)
-- [HTTP API](docs/http_api.md)
-- [Streaming protocol](docs/protocol.md)
-- [Tests and measurements](docs/testing.md)
-- [Design decisions](docs/decisions.md)
-- [Refactor coverage and limitations](docs/refactor_notes.md)
+- [Build and run guide](docs/build_run.md)
+- [Architecture notes](docs/architecture.md)
+- [Branch and module plan](docs/description_branches.md)
+
+## Roadmap
+
+- [ ] Reproducible latency and throughput benchmarks
+- [ ] Long-running soak tests with slow and reconnecting clients
+- [ ] Additional cgroup v2 controller metrics
+- [ ] Prometheus compatibility and dashboard examples
+- [ ] Kernel-version matrix for the optional eBPF profiler
+
+## Author
+
+Designed and developed by **Roman Snitko**.
+
+If WEB HTOP helped you understand a difficult Linux performance problem, consider starring the repository or opening an issue with a reproducible workload.
