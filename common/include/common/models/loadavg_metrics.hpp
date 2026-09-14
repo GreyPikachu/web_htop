@@ -15,14 +15,16 @@
 #include "common/json/utils.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief System load average metrics for one sampling point.
  * @details JSON serialization/deserialization includes fields: `timestamp`,
  * `load_1m`, `load_5m`, `load_15m`.
  */
-struct LoadavgMetrics {
+struct LoadavgMetrics
+{
     TimeStamp timestamp{}; ///< Sampling time in milliseconds since epoch
     Percentage load_1m{};  ///< Average runnable entities in last 1 minute
     Percentage load_5m{};  ///< Average runnable entities in last 5 minutes

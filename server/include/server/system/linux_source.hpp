@@ -9,21 +9,32 @@
 #include <sys/statvfs.h>
 #include <vector>
 
-namespace web_htop::server::system {
-struct FileResult {
+namespace web_htop::server::system
+{
+struct FileResult
+{
     std::string text;
     int error{};
-    [[nodiscard]] explicit operator bool() const noexcept {
+
+    [[nodiscard]] explicit operator bool() const noexcept
+    {
         return error == 0;
     }
 };
-struct PidList {
+
+struct PidList
+{
     std::vector<int> pids;
     int error{};
 };
-class LinuxSource {
+
+class LinuxSource
+{
   public:
-    explicit LinuxSource(ServerConfig config) : config_(std::move(config)) {}
+    explicit LinuxSource(ServerConfig config) : config_(std::move(config))
+    {
+    }
+
     virtual ~LinuxSource() = default;
     [[nodiscard]] virtual FileResult Proc(std::string const& relative) const;
     [[nodiscard]] virtual FileResult Sys(std::string const& relative) const;

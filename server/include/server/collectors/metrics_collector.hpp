@@ -11,8 +11,10 @@
 #include <stop_token>
 #include <unordered_map>
 
-namespace web_htop::server::collectors {
-class MetricsCollector {
+namespace web_htop::server::collectors
+{
+class MetricsCollector
+{
   public:
     MetricsCollector(ServerConfig config, std::shared_ptr<system::LinuxSource const> source);
     [[nodiscard]] models::SystemSnapshot
@@ -33,10 +35,13 @@ class MetricsCollector {
     std::shared_ptr<system::LinuxSource const> source_;
     CpuSample cpu_previous_;
     std::unordered_map<int, std::pair<std::uint64_t, std::uint64_t>> processes_previous_;
-    struct NetSample {
+
+    struct NetSample
+    {
         std::string identity;
         std::uint64_t rx{}, tx{};
     };
+
     std::map<std::string, NetSample> network_previous_;
     std::map<std::string, std::array<std::uint64_t, 5>> disks_previous_;
     std::optional<std::uint64_t> cg_usage_, cg_throttled_;

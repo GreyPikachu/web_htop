@@ -22,14 +22,16 @@
 #include "common/telemetry.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief Full system metrics snapshot for one sampling point.
  * @details JSON serialization/deserialization includes fields: `timestamp`,
  * `cpu`, `memory`, `disk`, `network`, `loadavg`, `process`.
  */
-struct SystemSnapshot {
+struct SystemSnapshot
+{
     TelemetryInfo telemetry{};
     TimeStamp timestamp{};    ///< Snapshot timestamp in milliseconds since epoch
     CPUMetrics cpu{};         ///< CPU metrics section

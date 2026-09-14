@@ -16,9 +16,11 @@
 #include <thread>
 #include <unistd.h>
 
-namespace {
+namespace
+{
 #define CHECK(expression)                                                                          \
-    do {                                                                                           \
+    do                                                                                             \
+    {                                                                                              \
         if (!(expression))                                                                         \
             throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) +      \
                                      ": " #expression);                                            \
@@ -26,43 +28,64 @@ namespace {
 using namespace web_htop;
 using namespace web_htop::server;
 using namespace web_htop::server::collectors;
-std::string Stat(int pid, std::uint64_t ticks, std::uint64_t start, std::string name = "worker") {
+
+std::string Stat(int pid, std::uint64_t ticks, std::uint64_t start, std::string name = "worker")
+{
     return std::to_string(pid) + " (" + name + ") R 1 1 1 0 0 0 0 0 0 0 " + std::to_string(ticks) +
            " 0 0 0 20 0 2 0 " + std::to_string(start) + " 100000 64\n";
 }
-class FakeSource final : public system::LinuxSource {
+
+class FakeSource final : public system::LinuxSource
+{
   public:
-    FakeSource() : LinuxSource(ServerConfig{}) {}
+    FakeSource() : LinuxSource(ServerConfig{})
+    {
+    }
+
     std::map<std::string, system::FileResult> files;
     std::map<std::string, system::FileResult> cgroup;
     std::string identity{"1:1"};
     std::vector<int> pids{42};
-    system::FileResult Proc(std::string const& relative) const override {
+
+    system::FileResult Proc(std::string const& relative) const override
+    {
         auto it = files.find(relative);
         return it == files.end() ? system::FileResult{{}, ENOENT} : it->second;
     }
-    system::FileResult Sys(std::string const&) const override {
+
+    system::FileResult Sys(std::string const&) const override
+    {
         return {"2", 0};
     }
-    system::FileResult Cgroup(std::string const& relative) const override {
+
+    system::FileResult Cgroup(std::string const& relative) const override
+    {
         auto it = cgroup.find(relative);
         return it == cgroup.end() ? system::FileResult{{}, ENOENT} : it->second;
     }
-    system::PidList Pids() const override {
+
+    system::PidList Pids() const override
+    {
         return {pids, 0};
     }
-    int Filesystem(struct statvfs& s) const override {
+
+    int Filesystem(struct statvfs& s) const override
+    {
         s.f_blocks = 100;
         s.f_frsize = 4096;
         s.f_bfree = 40;
         s.f_bavail = 30;
         return 0;
     }
-    std::string CgroupIdentity() const override {
+
+    std::string CgroupIdentity() const override
+    {
         return identity;
     }
 };
-std::shared_ptr<FakeSource> Source() {
+
+std::shared_ptr<FakeSource> Source()
+{
     auto s = std::make_shared<FakeSource>();
     s->files["stat"] = {"cpu 100 0 0 100 0 0 0 0 20 0\ncpu0 100 0 0 100 0 0 0 0\n", 0};
     s->files["meminfo"] = {"MemTotal: 100000 kB\nMemAvailable: 50000 kB\n", 0};
@@ -72,7 +95,9 @@ std::shared_ptr<FakeSource> Source() {
     s->files["diskstats"] = {"8 0 sda 100 0 1000 0 100 0 2000 0 0 100 0\n", 0};
     return s;
 }
-void TestFd() {
+
+void TestFd()
+{
     int raw = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
     CHECK(raw >= 0);
     {
@@ -85,8 +110,13 @@ void TestFd() {
     }
     CHECK(::fcntl(raw, F_GETFD) == -1 && errno == EBADF);
 }
-void TestQueue() {
-    auto buf = [](char const* s) { return std::make_shared<std::string const>(s); };
+
+void TestQueue()
+{
+    auto buf = [](char const* s)
+    {
+        return std::make_shared<std::string const>(s);
+    };
     OutputQueue queue;
     CHECK(!queue.Push(buf("first")));
     queue.Consume(2);
@@ -101,9 +131,13 @@ void TestQueue() {
     queue.Consume(3);
     CHECK(queue.Empty());
 }
-void TestFraming() {
+
+void TestFraming()
+{
     auto wire = protocol::Frame("abcdef");
-    for (std::size_t split = 0; split <= wire.size(); ++split) {
+
+    for (std::size_t split = 0; split <= wire.size(); ++split)
+    {
         protocol::FrameDecoder d;
         CHECK(d.Feed(std::span(wire.data(), split)) == split);
         CHECK(d.Feed(std::span(wire.data() + split, wire.size() - split)) == wire.size() - split);
@@ -116,18 +150,26 @@ void TestFraming() {
     d.Reset();
     CHECK(d.Feed(std::span(twice.data() + wire.size(), wire.size())) == wire.size());
     CHECK(d.Complete());
-    for (auto bad : {std::string(4, '\0'), std::string(4, '\xff')}) {
+
+    for (auto bad : {std::string(4, '\0'), std::string(4, '\xff')})
+    {
         bool threw = false;
-        try {
+
+        try
+        {
             protocol::FrameDecoder f;
             (void)f.Feed(bad);
-        } catch (std::length_error const&) {
+        }
+        catch (std::length_error const&)
+        {
             threw = true;
         }
         CHECK(threw);
     }
 }
-void TestJsonOwnershipAndLimits() {
+
+void TestJsonOwnershipAndLimits()
+{
     json::Value value;
     {
         models::ProcessInfo p;
@@ -148,7 +190,9 @@ void TestJsonOwnershipAndLimits() {
     json::Value bytes(std::string_view("bad\xff", 4));
     CHECK(json::Parse(bytes.ToString()).has_value());
 }
-void TestCpu() {
+
+void TestCpu()
+{
     auto sample = ParseCpu("cpu 10 20 30 40 50 60 70 80 9000 9000\ncpu7 1 2 3 4 5 6 7 8\n");
     CHECK(sample.size() == 2);
     CHECK(sample.contains(7));
@@ -160,7 +204,9 @@ void TestCpu() {
     CHECK(!CounterRate(0, 100, 1));
     CHECK(!CounterRate(100, 0, 0));
 }
-void TestProcessParser() {
+
+void TestProcessParser()
+{
     auto p = ParseProcess(Stat(42, 120, 77, "a tricky ) name\nwith newline"));
     CHECK(p);
     CHECK(p->pid == 42);
@@ -171,7 +217,9 @@ void TestProcessParser() {
     CHECK(p->name == "a tricky ) name\nwith newline");
     CHECK(!ParseProcess("42 (broken) R 1"));
 }
-void TestCollectorAndReuse() {
+
+void TestCollectorAndReuse()
+{
     auto source = Source();
     ServerConfig config;
     config.max_processes = 1;
@@ -199,7 +247,9 @@ void TestCollectorAndReuse() {
     auto fourth = collector.Collect({}, time + std::chrono::seconds(3));
     CHECK(fourth.telemetry.process_denied == 1);
 }
-void TestCgroup() {
+
+void TestCgroup()
+{
     auto source = Source();
     ServerConfig config;
     config.cgroup_path = "fixture";
@@ -220,7 +270,9 @@ void TestCgroup() {
     auto third = collector.Collect({}, time + std::chrono::seconds(2));
     CHECK(!third.telemetry.cgroup.cpu_percent);
 }
-void TestHttp() {
+
+void TestHttp()
+{
     CHECK(ParseHttpRequest("GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n").status == 200);
     CHECK(ParseHttpRequest("GET /health HTTP/1.1\r\n\r\n").status == 400);
     CHECK(ParseHttpRequest("POST / HTTP/1.1\r\nHost: h\r\n\r\n").status == 405);
@@ -229,36 +281,57 @@ void TestHttp() {
               .status == 400);
     CHECK(ParseHttpRequest("GET / HTTP/1.1\r\nHost: h\r\nHost: x\r\n\r\n").status == 400);
 }
-void TestPublication() {
+
+void TestPublication()
+{
     SharedState state;
     std::atomic<bool> good = true;
-    auto writer = std::jthread([&] {
-        for (unsigned i = 1; i <= 200; ++i) {
-            models::SystemSnapshot s;
-            s.telemetry.sequence = i;
-            s.telemetry.instance_id = "test";
-            s.timestamp = i;
-            state.Publish(std::move(s));
-        }
-    });
-    std::vector<std::jthread> readers;
-    for (int j = 0; j < 3; ++j)
-        readers.emplace_back([&] {
-            for (int i = 0; i < 1000; ++i)
-                if (auto s = state.Load()) {
-                    auto parsed = json::Parse(*s->json);
-                    if (!parsed ||
-                        json::UInt(parsed->value, "timestamp") != s->snapshot.telemetry.sequence)
-                        good = false;
-                }
+    auto writer = std::jthread(
+        [&]
+        {
+            for (unsigned i = 1; i <= 200; ++i)
+            {
+                models::SystemSnapshot s;
+                s.telemetry.sequence = i;
+                s.telemetry.instance_id = "test";
+                s.timestamp = i;
+                state.Publish(std::move(s));
+            }
         });
+    std::vector<std::jthread> readers;
+
+    for (int j = 0; j < 3; ++j)
+    {
+        readers.emplace_back(
+            [&]
+            {
+                for (int i = 0; i < 1000; ++i)
+                {
+                    if (auto s = state.Load())
+                    {
+                        auto parsed = json::Parse(*s->json);
+
+                        if (!parsed || json::UInt(parsed->value, "timestamp") !=
+                                           s->snapshot.telemetry.sequence)
+                        {
+                            good = false;
+                        }
+                    }
+                }
+            });
+    }
     writer.join();
+
     for (auto& reader : readers)
+    {
         reader.join();
+    }
     CHECK(good.load());
     CHECK(state.Load()->snapshot.telemetry.sequence == 200);
 }
-void TestDecodeAndUi() {
+
+void TestDecodeAndUi()
+{
     models::SystemSnapshot s;
     s.telemetry.instance_id = "test";
     s.telemetry.sequence = 1;
@@ -270,7 +343,9 @@ void TestDecodeAndUi() {
     CHECK(client::ui::Sanitize("bad\033[2J\n") == "bad?[2J?");
     client::ui::ViewState v;
     v.snapshot = &s;
-    for (unsigned page = 1; page <= 6; ++page) {
+
+    for (unsigned page = 1; page <= 6; ++page)
+    {
         v.page = page;
         auto screen = client::ui::Render(v, 120, 40, false);
         CHECK(screen.find('\033') == std::string::npos);
@@ -278,7 +353,9 @@ void TestDecodeAndUi() {
     }
 }
 } // namespace
-int main() {
+
+int main()
+{
     std::vector<std::pair<char const*, std::function<void()>>> tests{
         {"fd ownership", TestFd},
         {"latest-wins queue", TestQueue},
@@ -292,13 +369,19 @@ int main() {
         {"concurrent publication", TestPublication},
         {"codec and UI", TestDecodeAndUi}};
     unsigned failed = 0;
+
     for (auto const& [name, test] : tests)
-        try {
+    {
+        try
+        {
             test();
             std::cout << "PASS " << name << '\n';
-        } catch (std::exception const& e) {
+        }
+        catch (std::exception const& e)
+        {
             ++failed;
             std::cerr << "FAIL " << name << ": " << e.what() << '\n';
         }
+    }
     return failed ? 1 : 0;
 }

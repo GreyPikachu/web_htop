@@ -1,7 +1,10 @@
 #include "server/state/shared_state.hpp"
 #include "common/json/access.hpp"
-namespace web_htop::server {
-void SharedState::Publish(models::SystemSnapshot snapshot) {
+
+namespace web_htop::server
+{
+void SharedState::Publish(models::SystemSnapshot snapshot)
+{
     auto next = std::make_shared<PublishedSnapshot>();
     auto begin = std::chrono::steady_clock::now();
     next->snapshot = std::move(snapshot);

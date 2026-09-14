@@ -15,14 +15,16 @@
 #include "common/json/utils.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief Memory subsystem metrics for one sampling point.
  * @details JSON serialization/deserialization includes fields: `timestamp`,
  * `total_bytes`, `available_bytes`, `used_bytes`, `used_percent`.
  */
-struct MemoryMetrics {
+struct MemoryMetrics
+{
     TimeStamp timestamp{};     ///< Sampling time in milliseconds since epoch
     Bytes total_bytes{};       ///< Total available system memory
     Bytes available_bytes{};   ///< Readily available memory for new processes

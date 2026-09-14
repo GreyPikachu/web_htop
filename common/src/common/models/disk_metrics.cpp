@@ -10,9 +10,11 @@
 
 #include "common/models/disk_metrics.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
-json::utils::JSONValue DiskMetrics::ToJson() const {
+json::utils::JSONValue DiskMetrics::ToJson() const
+{
     json::utils::JSONObject object{};
     object.reserve(5);
 
@@ -25,31 +27,42 @@ json::utils::JSONValue DiskMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-DiskMetrics DiskMetrics::FromJson(json::utils::JSONValue const& value) {
+DiskMetrics DiskMetrics::FromJson(json::utils::JSONValue const& value)
+{
     DiskMetrics metrics{};
 
-    if (auto ts = value["timestamp"]) {
-        if (auto parsed = ts->get().AsUInt64()) {
+    if (auto ts = value["timestamp"])
+    {
+        if (auto parsed = ts->get().AsUInt64())
+        {
             metrics.timestamp = *parsed;
         }
     }
-    if (auto total = value["total_bytes"]) {
-        if (auto parsed = total->get().AsUInt64()) {
+    if (auto total = value["total_bytes"])
+    {
+        if (auto parsed = total->get().AsUInt64())
+        {
             metrics.total_bytes = *parsed;
         }
     }
-    if (auto available = value["available_bytes"]) {
-        if (auto parsed = available->get().AsUInt64()) {
+    if (auto available = value["available_bytes"])
+    {
+        if (auto parsed = available->get().AsUInt64())
+        {
             metrics.available_bytes = *parsed;
         }
     }
-    if (auto used = value["used_bytes"]) {
-        if (auto parsed = used->get().AsUInt64()) {
+    if (auto used = value["used_bytes"])
+    {
+        if (auto parsed = used->get().AsUInt64())
+        {
             metrics.used_bytes = *parsed;
         }
     }
-    if (auto usage = value["used_percent"]) {
-        if (auto parsed = usage->get().AsDouble()) {
+    if (auto usage = value["used_percent"])
+    {
+        if (auto parsed = usage->get().AsDouble())
+        {
             metrics.used_percent = *parsed;
         }
     }

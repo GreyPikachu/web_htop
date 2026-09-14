@@ -17,14 +17,16 @@
 #include <string>
 #include <string_view>
 
-namespace {
+namespace
+{
 
 /**
  * @test JSONParserTest.VerifyPrimitiveJSONParsing
  * @brief Verifies parsing of primitive JSON field types in object context.
  * @details Checks unsigned integer, boolean, string and floating-point fields.
  */
-TEST(JSONParserTest, VerifyPrimitiveJSONParsing) {
+TEST(JSONParserTest, VerifyPrimitiveJSONParsing)
+{
     auto parsed = web_htop::json::Parse(
         R"({"num":2281337666,"ok":true,"name":"compukter","some_ratio":50.05})");
     ASSERT_TRUE(parsed.has_value());
@@ -58,7 +60,8 @@ TEST(JSONParserTest, VerifyPrimitiveJSONParsing) {
  * @brief Verifies escape sequence and Unicode decoding in JSON strings.
  * @details Validates newline escape processing and UTF-16 surrogate pair decoding.
  */
-TEST(JSONParserTest, VerifyEscapedAndUnicodeJSONParsing) {
+TEST(JSONParserTest, VerifyEscapedAndUnicodeJSONParsing)
+{
     auto parsed =
         web_htop::json::Parse(R"({"random_text":"line\nA\u0042","random_emoji":"\uD83D\uDE00"})");
     ASSERT_TRUE(parsed.has_value());
@@ -81,7 +84,8 @@ TEST(JSONParserTest, VerifyEscapedAndUnicodeJSONParsing) {
  * @brief Verifies parsing and indexing behavior for JSON arrays.
  * @details Ensures array size, element values and out-of-range access handling.
  */
-TEST(JSONParserTest, VerifyArrayParsing) {
+TEST(JSONParserTest, VerifyArrayParsing)
+{
     auto parsed = web_htop::json::Parse("[228,1337,666]");
     ASSERT_TRUE(parsed.has_value());
 
@@ -113,7 +117,8 @@ TEST(JSONParserTest, VerifyArrayParsing) {
  * @brief Verifies parser tolerance to valid arbitrary whitespace.
  * @details Confirms correct parsing when spaces, tabs and newlines vary.
  */
-TEST(JSONParserTest, VerifyArbitraryWhitespaceParsing) {
+TEST(JSONParserTest, VerifyArbitraryWhitespaceParsing)
+{
     auto parsed = web_htop::json::Parse("{      \"num\"    :      1,\n"
                                         "   \"random_array\"  :   [   true,   false ,   null   ],\n"
                                         "\t\"ok\"    :    {   \"x\" :  \"ok\"   }\n"
@@ -151,7 +156,8 @@ TEST(JSONParserTest, VerifyArbitraryWhitespaceParsing) {
  * @brief Verifies valid JSON literals as root values.
  * @details Checks `null`, `true` and `false` root-level parsing.
  */
-TEST(JSONParserTest, VerifyRootLiteralsParsing) {
+TEST(JSONParserTest, VerifyRootLiteralsParsing)
+{
     auto parsed_null = web_htop::json::Parse("null");
     ASSERT_TRUE(parsed_null.has_value());
     EXPECT_TRUE(parsed_null->value.IsNull());
@@ -172,7 +178,8 @@ TEST(JSONParserTest, VerifyRootLiteralsParsing) {
  * @brief Verifies parsing of empty JSON object and array.
  * @details Ensures container type detection and zero element counts.
  */
-TEST(JSONParserTest, VerifyEmptyContainersParsing) {
+TEST(JSONParserTest, VerifyEmptyContainersParsing)
+{
     auto parsed_object = web_htop::json::Parse("{}");
     ASSERT_TRUE(parsed_object.has_value());
     EXPECT_TRUE(parsed_object->value.IsObject());
@@ -189,7 +196,8 @@ TEST(JSONParserTest, VerifyEmptyContainersParsing) {
  * @brief Verifies floating-point and exponent number parsing semantics.
  * @details Covers exponent notation, signed zero and rejection of unrepresentable exponents.
  */
-TEST(JSONParserTest, VerifyFloatingPointAndSpecialNumbersParsing) {
+TEST(JSONParserTest, VerifyFloatingPointAndSpecialNumbersParsing)
+{
     auto parsed = web_htop::json::Parse(R"({"a":1e3,"b":-2E-2,"c":0.0})");
     ASSERT_TRUE(parsed.has_value());
 
@@ -224,7 +232,8 @@ TEST(JSONParserTest, VerifyFloatingPointAndSpecialNumbersParsing) {
  * @brief Verifies numeric boundary parsing and typed accessor contracts.
  * @details Checks int/uint limits and expected `std::nullopt` for invalid conversions.
  */
-TEST(JSONParserTest, VerifyNumericBoundariesAndIncompatibleAccessors) {
+TEST(JSONParserTest, VerifyNumericBoundariesAndIncompatibleAccessors)
+{
     auto parsed = web_htop::json::Parse(
         R"({"i64_min":-9223372036854775808,"i64_max":9223372036854775807,"u64_max":18446744073709551615,"neg":-1,"flt":1.5,"text":"x"})");
     ASSERT_TRUE(parsed.has_value());
@@ -267,7 +276,8 @@ TEST(JSONParserTest, VerifyNumericBoundariesAndIncompatibleAccessors) {
  * @brief Verifies rejection of syntactically invalid or overflowing numbers.
  * @details Ensures parser reports failure for malformed numeric tokens.
  */
-TEST(JSONParserTest, RejectMalformedNumbers) {
+TEST(JSONParserTest, RejectMalformedNumbers)
+{
     EXPECT_FALSE(web_htop::json::Parse(R"({"n":01})").has_value());
     EXPECT_FALSE(web_htop::json::Parse(R"({"n":1.})").has_value());
     EXPECT_FALSE(web_htop::json::Parse(R"({"n":.5})").has_value());
@@ -281,7 +291,8 @@ TEST(JSONParserTest, RejectMalformedNumbers) {
  * @brief Verifies rejection of invalid string escapes and Unicode forms.
  * @details Covers illegal escapes, invalid surrogates and unescaped control bytes.
  */
-TEST(JSONParserTest, RejectMalformedStringsAndUnicode) {
+TEST(JSONParserTest, RejectMalformedStringsAndUnicode)
+{
     EXPECT_FALSE(web_htop::json::Parse("{\"s\":\"\\q\"}").has_value());
     EXPECT_FALSE(web_htop::json::Parse("{\"s\":\"\\uD800\"}").has_value());
     EXPECT_FALSE(web_htop::json::Parse("{\"s\":\"\\uDC00\"}").has_value());
@@ -299,7 +310,8 @@ TEST(JSONParserTest, RejectMalformedStringsAndUnicode) {
  * @brief Verifies rejection of malformed JSON document structure.
  * @details Checks trailing commas, missing separators and trailing garbage input.
  */
-TEST(JSONParserTest, RejectMalformedStructure) {
+TEST(JSONParserTest, RejectMalformedStructure)
+{
     EXPECT_FALSE(web_htop::json::Parse(R"({"a":1,})").has_value());
     EXPECT_FALSE(web_htop::json::Parse(R"([1,2,])").has_value());
     EXPECT_FALSE(web_htop::json::Parse(R"({"a" 1})").has_value());

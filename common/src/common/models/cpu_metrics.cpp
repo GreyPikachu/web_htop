@@ -10,12 +10,16 @@
 
 #include "common/models/cpu_metrics.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
-json::utils::JSONValue CPUMetrics::ToJson() const {
+json::utils::JSONValue CPUMetrics::ToJson() const
+{
     json::utils::JSONArray per_core_array{};
     per_core_array.reserve(per_core_usage_percent.size());
-    for (auto const usage : per_core_usage_percent) {
+
+    for (auto const usage : per_core_usage_percent)
+    {
         per_core_array.emplace_back(usage);
     }
 
@@ -33,34 +37,48 @@ json::utils::JSONValue CPUMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-CPUMetrics CPUMetrics::FromJson(json::utils::JSONValue const& value) {
+CPUMetrics CPUMetrics::FromJson(json::utils::JSONValue const& value)
+{
     CPUMetrics metrics{};
 
-    if (auto ts = value["timestamp"]) {
-        if (auto parsed = ts->get().AsUInt64()) {
+    if (auto ts = value["timestamp"])
+    {
+        if (auto parsed = ts->get().AsUInt64())
+        {
             metrics.timestamp = *parsed;
         }
     }
-    if (auto cores = value["core_count"]) {
-        if (auto parsed = cores->get().AsUInt64()) {
+    if (auto cores = value["core_count"])
+    {
+        if (auto parsed = cores->get().AsUInt64())
+        {
             metrics.core_count = static_cast<CPUCores>(*parsed);
         }
     }
-    if (auto usage = value["total_usage_percent"]) {
-        if (auto parsed = usage->get().AsDouble()) {
+    if (auto usage = value["total_usage_percent"])
+    {
+        if (auto parsed = usage->get().AsDouble())
+        {
             metrics.total_usage_percent = *parsed;
         }
     }
-    if (auto freq = value["frequency_mhz"]) {
-        if (auto parsed = freq->get().AsDouble()) {
+    if (auto freq = value["frequency_mhz"])
+    {
+        if (auto parsed = freq->get().AsDouble())
+        {
             metrics.frequency_mhz = *parsed;
         }
     }
-    if (auto per_core = value["per_core_usage_percent"]) {
-        if (auto const* array = per_core->get().AsArray()) {
+    if (auto per_core = value["per_core_usage_percent"])
+    {
+        if (auto const* array = per_core->get().AsArray())
+        {
             metrics.per_core_usage_percent.reserve(array->size());
-            for (auto const& item : *array) {
-                if (auto item_usage = item.AsDouble()) {
+
+            for (auto const& item : *array)
+            {
+                if (auto item_usage = item.AsDouble())
+                {
                     metrics.per_core_usage_percent.push_back(*item_usage);
                 }
             }

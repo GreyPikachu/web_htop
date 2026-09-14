@@ -20,7 +20,8 @@
 #include "common/json/utils.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief One process entry for the process table snapshot.
@@ -28,7 +29,8 @@ namespace web_htop::models {
  * `name`, `state`, `cpu_percent`, `memory_bytes`, `memory_percent`,
  * `thread_count`.
  */
-struct ProcessInfo {
+struct ProcessInfo
+{
     std::uint64_t starttime_ticks{};
     bool cpu_valid{};
     ProcessID pid{};                           ///< Process identifier
@@ -58,7 +60,8 @@ struct ProcessInfo {
  * @details JSON serialization/deserialization includes fields: `timestamp`,
  * `total_processes`, `running_processes`, `processes`.
  */
-struct ProcessMetrics {
+struct ProcessMetrics
+{
     TimeStamp timestamp{};                ///< Sampling time in milliseconds since epoch
     std::uint64_t total_processes{};      ///< Total number of collected processes
     std::uint64_t running_processes{};    ///< Number of processes in running state

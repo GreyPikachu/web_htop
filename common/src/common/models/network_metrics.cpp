@@ -11,9 +11,11 @@
 
 #include "common/models/network_metrics.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
-json::utils::JSONValue NetworkMetrics::ToJson() const {
+json::utils::JSONValue NetworkMetrics::ToJson() const
+{
     json::utils::JSONObject object{};
     object.reserve(5);
 
@@ -26,31 +28,42 @@ json::utils::JSONValue NetworkMetrics::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-NetworkMetrics NetworkMetrics::FromJson(json::utils::JSONValue const& value) {
+NetworkMetrics NetworkMetrics::FromJson(json::utils::JSONValue const& value)
+{
     NetworkMetrics metrics{};
 
-    if (auto ts = value["timestamp"]) {
-        if (auto parsed = ts->get().AsUInt64()) {
+    if (auto ts = value["timestamp"])
+    {
+        if (auto parsed = ts->get().AsUInt64())
+        {
             metrics.timestamp = *parsed;
         }
     }
-    if (auto rx_total = value["rx_bytes_total"]) {
-        if (auto parsed = rx_total->get().AsUInt64()) {
+    if (auto rx_total = value["rx_bytes_total"])
+    {
+        if (auto parsed = rx_total->get().AsUInt64())
+        {
             metrics.rx_bytes_total = *parsed;
         }
     }
-    if (auto tx_total = value["tx_bytes_total"]) {
-        if (auto parsed = tx_total->get().AsUInt64()) {
+    if (auto tx_total = value["tx_bytes_total"])
+    {
+        if (auto parsed = tx_total->get().AsUInt64())
+        {
             metrics.tx_bytes_total = *parsed;
         }
     }
-    if (auto rx_rate = value["rx_kbps"]) {
-        if (auto parsed = rx_rate->get().AsDouble()) {
+    if (auto rx_rate = value["rx_kbps"])
+    {
+        if (auto parsed = rx_rate->get().AsDouble())
+        {
             metrics.rx_kbps = *parsed;
         }
     }
-    if (auto tx_rate = value["tx_kbps"]) {
-        if (auto parsed = tx_rate->get().AsDouble()) {
+    if (auto tx_rate = value["tx_kbps"])
+    {
+        if (auto parsed = tx_rate->get().AsDouble())
+        {
             metrics.tx_kbps = *parsed;
         }
     }

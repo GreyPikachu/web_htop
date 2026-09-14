@@ -22,7 +22,8 @@
 
 #include <string_view>
 
-namespace {
+namespace
+{
 
 /**
  * @test SerializationTest.VerifyCPUMetricsToJsonAndFromJson
@@ -30,7 +31,8 @@ namespace {
  * @details Checks all CPU JSON fields including per-core usage array and
  * validates equality after `ToJson` -> `FromJson`.
  */
-TEST(SerializationTest, VerifyCPUMetricsToJsonAndFromJson) {
+TEST(SerializationTest, VerifyCPUMetricsToJsonAndFromJson)
+{
     web_htop::models::CPUMetrics metrics{};
     metrics.timestamp = 1713427200000ULL;
     metrics.core_count = 8;
@@ -67,7 +69,9 @@ TEST(SerializationTest, VerifyCPUMetricsToJsonAndFromJson) {
     auto const* per_core_array = per_core_usage->get().AsArray();
     ASSERT_NE(per_core_array, nullptr);
     ASSERT_EQ(per_core_array->size(), metrics.per_core_usage_percent.size());
-    for (size_t i = 0; i < per_core_array->size(); i++) {
+
+    for (size_t i = 0; i < per_core_array->size(); i++)
+    {
         ASSERT_TRUE(per_core_array->at(i).AsDouble().has_value());
         EXPECT_DOUBLE_EQ(per_core_array->at(i).AsDouble().value(),
                          metrics.per_core_usage_percent[i]);
@@ -79,7 +83,9 @@ TEST(SerializationTest, VerifyCPUMetricsToJsonAndFromJson) {
     EXPECT_DOUBLE_EQ(restored.total_usage_percent, metrics.total_usage_percent);
     EXPECT_DOUBLE_EQ(restored.frequency_mhz, metrics.frequency_mhz);
     ASSERT_EQ(restored.per_core_usage_percent.size(), metrics.per_core_usage_percent.size());
-    for (size_t i = 0; i < restored.per_core_usage_percent.size(); i++) {
+
+    for (size_t i = 0; i < restored.per_core_usage_percent.size(); i++)
+    {
         EXPECT_DOUBLE_EQ(restored.per_core_usage_percent[i], metrics.per_core_usage_percent[i]);
     }
 }
@@ -90,7 +96,8 @@ TEST(SerializationTest, VerifyCPUMetricsToJsonAndFromJson) {
  * @details Ensures memory capacity and usage fields are serialized with proper
  * numeric types and recovered without data loss.
  */
-TEST(SerializationTest, VerifyMemoryMetricsToJsonAndFromJson) {
+TEST(SerializationTest, VerifyMemoryMetricsToJsonAndFromJson)
+{
     web_htop::models::MemoryMetrics metrics{};
     metrics.timestamp = 1713427200123ULL;
     metrics.total_bytes = 34ULL * 1024ULL * 1024ULL * 1024ULL;
@@ -121,7 +128,8 @@ TEST(SerializationTest, VerifyMemoryMetricsToJsonAndFromJson) {
  * @details Confirms disk capacity/usage fields are present in JSON and parsed
  * back into equivalent `DiskMetrics`.
  */
-TEST(SerializationTest, VerifyDiskMetricsToJsonAndFromJson) {
+TEST(SerializationTest, VerifyDiskMetricsToJsonAndFromJson)
+{
     web_htop::models::DiskMetrics metrics{};
     metrics.timestamp = 1713427200456ULL;
     metrics.total_bytes = 512ULL * 1024ULL * 1024ULL * 1024ULL;
@@ -152,7 +160,8 @@ TEST(SerializationTest, VerifyDiskMetricsToJsonAndFromJson) {
  * @details Validates total traffic counters and throughput fields in JSON and
  * checks restored `NetworkMetrics` equality.
  */
-TEST(SerializationTest, VerifyNetworkMetricsToJsonAndFromJson) {
+TEST(SerializationTest, VerifyNetworkMetricsToJsonAndFromJson)
+{
     web_htop::models::NetworkMetrics metrics{};
     metrics.timestamp = 1713427200789ULL;
     metrics.rx_bytes_total = 987654321ULL;
@@ -183,7 +192,8 @@ TEST(SerializationTest, VerifyNetworkMetricsToJsonAndFromJson) {
  * @details Checks JSON encoding of PID, process name, state, CPU/memory usage,
  * and thread count for `ProcessInfo`.
  */
-TEST(SerializationTest, VerifyProcessInfoToJsonAndFromJson) {
+TEST(SerializationTest, VerifyProcessInfoToJsonAndFromJson)
+{
     web_htop::models::ProcessInfo process{};
     process.pid = 4242;
     process.name = "web_htop_worker";
@@ -224,7 +234,8 @@ TEST(SerializationTest, VerifyProcessInfoToJsonAndFromJson) {
  * @details Ensures top-level process counters and nested `processes` array are
  * serialized correctly and reconstructed into equivalent `ProcessMetrics`.
  */
-TEST(SerializationTest, VerifyProcessMetricsToJsonAndFromJson) {
+TEST(SerializationTest, VerifyProcessMetricsToJsonAndFromJson)
+{
     web_htop::models::ProcessInfo process_1{};
     process_1.pid = 1001;
     process_1.name = "init";
@@ -265,7 +276,8 @@ TEST(SerializationTest, VerifyProcessMetricsToJsonAndFromJson) {
     EXPECT_EQ(restored.running_processes, metrics.running_processes);
     ASSERT_EQ(restored.processes.size(), metrics.processes.size());
 
-    for (size_t i = 0; i < restored.processes.size(); i++) {
+    for (size_t i = 0; i < restored.processes.size(); i++)
+    {
         EXPECT_EQ(restored.processes[i].pid, metrics.processes[i].pid);
         EXPECT_EQ(restored.processes[i].name, metrics.processes[i].name);
         EXPECT_EQ(restored.processes[i].state, metrics.processes[i].state);
@@ -282,7 +294,8 @@ TEST(SerializationTest, VerifyProcessMetricsToJsonAndFromJson) {
  * @details Checks 1/5/15 minute load fields in JSON and validates
  * round-trip conversion for `LoadavgMetrics`.
  */
-TEST(SerializationTest, VerifyLoadavgMetricsToJsonAndFromJson) {
+TEST(SerializationTest, VerifyLoadavgMetricsToJsonAndFromJson)
+{
     web_htop::models::LoadavgMetrics metrics{};
     metrics.timestamp = 1713427201111ULL;
     metrics.load_1m = 0.52;
@@ -311,7 +324,8 @@ TEST(SerializationTest, VerifyLoadavgMetricsToJsonAndFromJson) {
  * @details Ensures top-level sections and nested metric values survive
  * `ToJson` -> `FromJson` round-trip for `SystemSnapshot`.
  */
-TEST(SerializationTest, VerifySystemSnapshotToJsonAndFromJson) {
+TEST(SerializationTest, VerifySystemSnapshotToJsonAndFromJson)
+{
     web_htop::models::SystemSnapshot snapshot{};
     snapshot.timestamp = 1713427201222ULL;
     snapshot.cpu.timestamp = 1713427201222ULL;
@@ -362,7 +376,9 @@ TEST(SerializationTest, VerifySystemSnapshotToJsonAndFromJson) {
     EXPECT_DOUBLE_EQ(restored.cpu.total_usage_percent, snapshot.cpu.total_usage_percent);
     ASSERT_EQ(restored.cpu.per_core_usage_percent.size(),
               snapshot.cpu.per_core_usage_percent.size());
-    for (size_t i = 0; i < restored.cpu.per_core_usage_percent.size(); i++) {
+
+    for (size_t i = 0; i < restored.cpu.per_core_usage_percent.size(); i++)
+    {
         EXPECT_DOUBLE_EQ(restored.cpu.per_core_usage_percent[i],
                          snapshot.cpu.per_core_usage_percent[i]);
     }

@@ -15,14 +15,16 @@
 #include "common/json/utils.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief Network subsystem metrics for one sampling point.
  * @details JSON serialization/deserialization includes fields: `timestamp`,
  * `rx_bytes_total`, `tx_bytes_total`, `rx_kbps`, `tx_kbps`.
  */
-struct NetworkMetrics {
+struct NetworkMetrics
+{
     TimeStamp timestamp{};        ///< Sampling time in milliseconds since epoch
     Bytes rx_bytes_total{};       ///< Total received bytes since boot
     Bytes tx_bytes_total{};       ///< Total transmitted bytes since boot

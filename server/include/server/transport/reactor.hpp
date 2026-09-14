@@ -9,15 +9,19 @@
 #include "server/transport/output_queue.hpp"
 #include <unordered_map>
 
-namespace web_htop::server {
-class Reactor {
+namespace web_htop::server
+{
+class Reactor
+{
   public:
     Reactor(ServerConfig config, SharedState const& state, int signal_fd, int notification_fd);
     void Run();
 
   private:
     using Clock = std::chrono::steady_clock;
-    struct Session {
+
+    struct Session
+    {
         UniqueFd fd;
         bool streaming{};
         bool responding{};
@@ -25,6 +29,7 @@ class Reactor {
         OutputQueue output;
         Clock::time_point accepted_at, last_progress;
     };
+
     void Register(int fd, std::uint64_t token, std::uint32_t events);
     void Modify(std::uint64_t token, Session const& session);
     void Accept(bool streaming);

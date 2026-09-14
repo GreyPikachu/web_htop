@@ -9,9 +9,13 @@
 #include "utils.hpp"
 #include <optional>
 #include <string_view>
-namespace web_htop::json {
-struct ParseResult {
+
+namespace web_htop::json
+{
+struct ParseResult
+{
     utils::JSONValue value;
 };
+
 [[nodiscard]] std::optional<ParseResult> Parse(std::string_view input);
 } // namespace web_htop::json

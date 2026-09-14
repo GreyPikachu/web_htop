@@ -1,9 +1,12 @@
 #include "common/telemetry.hpp"
 #include "common/json/access.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 using namespace web_htop::json;
-Value SampleStatus::ToJson() const {
+
+Value SampleStatus::ToJson() const
+{
     Object o;
     Add(o, "name", name);
     Add(o, "state", state);
@@ -11,7 +14,9 @@ Value SampleStatus::ToJson() const {
     Add(o, "duration_us", duration_us);
     return Value(std::move(o));
 }
-Value InterfaceMetrics::ToJson() const {
+
+Value InterfaceMetrics::ToJson() const
+{
     Object o;
     Add(o, "name", name);
     Add(o, "rx_bytes", rx_bytes);
@@ -24,7 +29,9 @@ Value InterfaceMetrics::ToJson() const {
     Add(o, "tx_bytes_per_second", tx_bytes_per_second);
     return Value(std::move(o));
 }
-Value DiskIoMetrics::ToJson() const {
+
+Value DiskIoMetrics::ToJson() const
+{
     Object o;
     Add(o, "device", device);
     Add(o, "read_bytes_per_second", read_bytes_per_second);
@@ -33,7 +40,9 @@ Value DiskIoMetrics::ToJson() const {
     Add(o, "busy_percent", busy_percent);
     return Value(std::move(o));
 }
-Value PressureMetrics::ToJson() const {
+
+Value PressureMetrics::ToJson() const
+{
     Object o;
     Add(o, "resource", resource);
     Add(o, "some_avg10", some_avg10);
@@ -42,7 +51,9 @@ Value PressureMetrics::ToJson() const {
     Add(o, "full_avg10", full_avg10);
     return Value(std::move(o));
 }
-Value CgroupMetrics::ToJson() const {
+
+Value CgroupMetrics::ToJson() const
+{
     Object o;
     Add(o, "path", path);
     Add(o, "state", state);
@@ -58,7 +69,9 @@ Value CgroupMetrics::ToJson() const {
     o.emplace_back("pressure", List(pressure));
     return Value(std::move(o));
 }
-Value TelemetryInfo::ToJson() const {
+
+Value TelemetryInfo::ToJson() const
+{
     Object o;
     Add(o, "interval_ms", interval_ms);
     Add(o, "sequence", sequence);
@@ -75,8 +88,11 @@ Value TelemetryInfo::ToJson() const {
     Add(o, "process_malformed", process_malformed);
     Add(o, "processes_truncated", processes_truncated);
     Array ids;
+
     for (auto id : cpu_ids)
+    {
         ids.push_back(Make(id));
+    }
     o.emplace_back("cpu_ids", Value(std::move(ids)));
     o.emplace_back("collectors", List(collectors));
     o.emplace_back("interfaces", List(interfaces));
@@ -85,17 +101,27 @@ Value TelemetryInfo::ToJson() const {
     o.emplace_back("cgroup", cgroup.ToJson());
     return Value(std::move(o));
 }
-namespace {
-std::vector<PressureMetrics> ReadPressure(Value const& v) {
+
+namespace
+{
+std::vector<PressureMetrics> ReadPressure(Value const& v)
+{
     std::vector<PressureMetrics> result;
+
     if (auto a = v.AsArray())
+    {
         for (auto const& p : *a)
+        {
             result.push_back({Text(p, "resource"), Number(p, "some_avg10"), Number(p, "some_avg60"),
                               Number(p, "some_avg300"), Number(p, "full_avg10")});
+        }
+    }
     return result;
 }
 } // namespace
-TelemetryInfo TelemetryInfo::FromJson(Value const& v) {
+
+TelemetryInfo TelemetryInfo::FromJson(Value const& v)
+{
     TelemetryInfo t;
     t.interval_ms = UInt(v, "interval_ms").value_or(1000);
     t.sequence = UInt(v, "sequence").value_or(0);
@@ -110,34 +136,64 @@ TelemetryInfo TelemetryInfo::FromJson(Value const& v) {
     t.process_vanished = UInt(v, "process_vanished").value_or(0);
     t.process_malformed = UInt(v, "process_malformed").value_or(0);
     t.processes_truncated = Boolean(v, "processes_truncated");
+
     if (auto f = Field(v, "cpu_ids"))
+    {
         if (auto a = f->AsArray())
+        {
             for (auto const& id : *a)
+            {
                 if (auto n = id.AsUInt64(); n && *n <= std::numeric_limits<unsigned>::max())
+                {
                     t.cpu_ids.push_back(static_cast<unsigned>(*n));
+                }
+            }
+        }
+    }
     if (auto f = Field(v, "collectors"))
+    {
         if (auto a = f->AsArray())
+        {
             for (auto const& p : *a)
+            {
                 t.collectors.push_back({Text(p, "name"), Text(p, "state"), Text(p, "error"),
                                         UInt(p, "duration_us").value_or(0)});
+            }
+        }
+    }
     if (auto f = Field(v, "interfaces"))
+    {
         if (auto a = f->AsArray())
+        {
             for (auto const& p : *a)
+            {
                 t.interfaces.push_back(
                     {Text(p, "name"), UInt(p, "rx_bytes").value_or(0),
                      UInt(p, "tx_bytes").value_or(0), UInt(p, "rx_errors").value_or(0),
                      UInt(p, "tx_errors").value_or(0), UInt(p, "rx_dropped").value_or(0),
                      UInt(p, "tx_dropped").value_or(0), Number(p, "rx_bytes_per_second"),
                      Number(p, "tx_bytes_per_second")});
+            }
+        }
+    }
     if (auto f = Field(v, "disks"))
+    {
         if (auto a = f->AsArray())
+        {
             for (auto const& p : *a)
+            {
                 t.disks.push_back({Text(p, "device"), Number(p, "read_bytes_per_second"),
                                    Number(p, "write_bytes_per_second"), Number(p, "iops"),
                                    Number(p, "busy_percent")});
+            }
+        }
+    }
     if (auto f = Field(v, "pressure"))
+    {
         t.pressure = ReadPressure(*f);
-    if (auto p = Field(v, "cgroup")) {
+    }
+    if (auto p = Field(v, "cgroup"))
+    {
         auto& c = t.cgroup;
         c.path = Text(*p, "path");
         c.state = Text(*p, "state");
@@ -150,8 +206,11 @@ TelemetryInfo TelemetryInfo::FromJson(Value const& v) {
         c.nr_throttled = UInt(*p, "nr_throttled");
         c.oom_kill = UInt(*p, "oom_kill");
         c.throttled_ms_per_second = Number(*p, "throttled_ms_per_second");
+
         if (auto f = Field(*p, "pressure"))
+        {
             c.pressure = ReadPressure(*f);
+        }
     }
     return t;
 }

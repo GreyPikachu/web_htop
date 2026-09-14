@@ -12,12 +12,14 @@
 #ifndef WEB_HTOP_COMMON_ENUMS_HPP_
 #define WEB_HTOP_COMMON_ENUMS_HPP_
 
-namespace web_htop {
+namespace web_htop
+{
 
 /**
  * @brief Process state enumeration based on /proc/[pid]/stat field 3.
  */
-enum class ProcessState : char {
+enum class ProcessState : char
+{
     RUNNING = 'R',      // Running
     SLEEPING = 'S',     // Sleeping in interruptible wait
     DISK_SLEEP = 'D',   // Waiting in uninterruptible disk sleep

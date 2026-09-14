@@ -20,9 +20,11 @@
 #include <string>
 #include <unordered_set>
 
-namespace web_htop::json {
+namespace web_htop::json
+{
 
-namespace {
+namespace
+{
 
 /**
  * @brief Convert one hexadecimal digit into numeric value.
@@ -30,14 +32,18 @@ namespace {
  * @param c Hexadecimal character to decode.
  * @returns Numeric value in range [0..15] or `std::nullopt` if input is invalid.
  */
-[[nodiscard]] std::optional<uint32_t> HexDigit_(char c) {
-    if (c >= '0' && c <= '9') {
+[[nodiscard]] std::optional<uint32_t> HexDigit_(char c)
+{
+    if (c >= '0' && c <= '9')
+    {
         return static_cast<uint32_t>(c - '0');
     }
-    if (c >= 'a' && c <= 'f') {
+    if (c >= 'a' && c <= 'f')
+    {
         return static_cast<uint32_t>(c - 'a' + 10);
     }
-    if (c >= 'A' && c <= 'F') {
+    if (c >= 'A' && c <= 'F')
+    {
         return static_cast<uint32_t>(c - 'A' + 10);
     }
 
@@ -52,15 +58,21 @@ namespace {
  * @param i Start position of the 4-digit sequence.
  * @returns Parsed 16-bit code unit value or `std::nullopt` if input is invalid.
  */
-[[nodiscard]] std::optional<uint32_t> ParseHex4_(std::string_view raw, size_t i) {
-    if (i + 4 > raw.size()) {
+[[nodiscard]] std::optional<uint32_t> ParseHex4_(std::string_view raw, size_t i)
+{
+    if (i + 4 > raw.size())
+    {
         return std::nullopt;
     }
 
     uint32_t res = 0;
-    for (size_t k = 0; k < 4; k++) {
+
+    for (size_t k = 0; k < 4; k++)
+    {
         auto digit = HexDigit_(raw[i + k]);
-        if (!digit) {
+
+        if (!digit)
+        {
             return std::nullopt;
         }
 
@@ -77,22 +89,32 @@ namespace {
  * @param cp Unicode code point to encode.
  * @returns `true` when code point is valid and encoded, otherwise `false`.
  */
-[[nodiscard]] bool EncodeUtf8_(std::string& out, uint32_t cp) {
-    if (cp < 0x80u) {
+[[nodiscard]] bool EncodeUtf8_(std::string& out, uint32_t cp)
+{
+    if (cp < 0x80u)
+    {
         out += static_cast<char>(cp);
-    } else if (cp < 0x800u) {
+    }
+    else if (cp < 0x800u)
+    {
         out += static_cast<char>(0xC0u | (cp >> 6));
         out += static_cast<char>(0x80u | (cp & 0x3Fu));
-    } else if (cp < 0x10000u) {
+    }
+    else if (cp < 0x10000u)
+    {
         out += static_cast<char>(0xE0u | (cp >> 12));
         out += static_cast<char>(0x80u | ((cp >> 6) & 0x3Fu));
         out += static_cast<char>(0x80u | (cp & 0x3Fu));
-    } else if (cp <= 0x10FFFFu) {
+    }
+    else if (cp <= 0x10FFFFu)
+    {
         out += static_cast<char>(0xF0u | (cp >> 18));
         out += static_cast<char>(0x80u | ((cp >> 12) & 0x3Fu));
         out += static_cast<char>(0x80u | ((cp >> 6) & 0x3Fu));
         out += static_cast<char>(0x80u | (cp & 0x3Fu));
-    } else {
+    }
+    else
+    {
         return false;
     }
 
@@ -104,7 +126,8 @@ namespace {
  * @details Tracks current cursor position and bounds recursion and tracks the input cursor. Parsed
  * values own their strings.
  */
-struct ParserState {
+struct ParserState
+{
     std::string_view input; ///< Input string to parse
     size_t depth = 0;
     size_t nodes = 0;
@@ -115,7 +138,8 @@ struct ParserState {
      * @details Uses current \p pos against `input.size()`.
      * @returns `true` if no more input is available, otherwise `false`.
      */
-    [[nodiscard]] bool AtEnd() const noexcept {
+    [[nodiscard]] bool AtEnd() const noexcept
+    {
         return pos >= input.size();
     }
 
@@ -124,7 +148,8 @@ struct ParserState {
      * @details Returns `'\0'` when parser already reached end of input.
      * @returns Current input character or null character at end.
      */
-    [[nodiscard]] char Peek() const noexcept {
+    [[nodiscard]] char Peek() const noexcept
+    {
         return AtEnd() ? '\0' : input[pos];
     }
 
@@ -134,8 +159,10 @@ struct ParserState {
      * @param c Expected character.
      * @returns `true` when expected character is consumed, otherwise `false`.
      */
-    bool Expect(char c) {
-        if (AtEnd() || input[pos] != c) {
+    bool Expect(char c)
+    {
+        if (AtEnd() || input[pos] != c)
+        {
             return false;
         }
 
@@ -149,13 +176,18 @@ struct ParserState {
      * @details Consumes spaces, tabs, newlines and carriage returns.
      * @returns None.
      */
-    void SkipWhitespace() noexcept {
-        while (pos < input.size()) {
+    void SkipWhitespace() noexcept
+    {
+        while (pos < input.size())
+        {
             char const c = input[pos];
 
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            {
                 ++pos;
-            } else {
+            }
+            else
+            {
                 break;
             }
         }
@@ -168,36 +200,48 @@ struct ParserState {
      * @returns Decoded string on success; `std::nullopt`
      * when string literal is malformed.
      */
-    [[nodiscard]] std::optional<std::string> ParseString() {
-        if (!Expect('"')) {
+    [[nodiscard]] std::optional<std::string> ParseString()
+    {
+        if (!Expect('"'))
+        {
             return std::nullopt;
         }
 
         size_t const start = pos;
         bool needs_decode = false;
 
-        while (!AtEnd()) {
+        while (!AtEnd())
+        {
             char const c = input[pos];
-            if (c == '"') {
+
+            if (c == '"')
+            {
                 break;
             }
 
-            if (c == '\\') {
+            if (c == '\\')
+            {
                 needs_decode = true;
                 ++pos;
 
-                if (AtEnd()) {
+                if (AtEnd())
+                {
                     return std::nullopt;
                 }
 
                 char esc = input[pos++];
-                if (esc == 'u') {
-                    if (pos + 4 > input.size()) {
+
+                if (esc == 'u')
+                {
+                    if (pos + 4 > input.size())
+                    {
                         return std::nullopt;
                     }
 
-                    for (int i = 0; i < 4; i++) {
-                        if (!HexDigit_(input[pos + i])) {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (!HexDigit_(input[pos + i]))
+                        {
                             return std::nullopt;
                         }
                     }
@@ -208,40 +252,54 @@ struct ParserState {
                 continue;
             }
 
-            if (static_cast<unsigned char>(c) < 0x20) {
+            if (static_cast<unsigned char>(c) < 0x20)
+            {
                 return std::nullopt;
             }
-            if (static_cast<unsigned char>(c) >= 128) {
+            if (static_cast<unsigned char>(c) >= 128)
+            {
                 auto length = Utf8Length(input, pos);
+
                 if (!length)
+                {
                     return std::nullopt;
+                }
                 pos += length;
-            } else {
+            }
+            else
+            {
                 ++pos;
             }
         }
 
-        if (!Expect('"')) {
+        if (!Expect('"'))
+        {
             return std::nullopt;
         }
 
         std::string_view const raw = input.substr(start, pos - start - 1);
-        if (!needs_decode) {
+
+        if (!needs_decode)
+        {
             return std::string(raw);
         }
 
         std::string decoded;
         decoded.reserve(raw.size());
 
-        for (size_t i = 0; i < raw.size();) {
-            if (raw[i] != '\\') {
+        for (size_t i = 0; i < raw.size();)
+        {
+            if (raw[i] != '\\')
+            {
                 decoded += raw[i++];
                 continue;
             }
 
             i++;
             char esc = raw[i++];
-            switch (esc) {
+
+            switch (esc)
+            {
             case '"':
                 decoded += '"';
                 break;
@@ -266,32 +324,44 @@ struct ParserState {
             case 't':
                 decoded += '\t';
                 break;
-            case 'u': {
+            case 'u':
+            {
                 auto cp_opt = ParseHex4_(raw, i);
-                if (!cp_opt) {
+
+                if (!cp_opt)
+                {
                     return std::nullopt;
                 }
 
                 uint32_t cp = *cp_opt;
                 i += 4;
 
-                if (cp >= 0xD800u && cp <= 0xDBFFu) {
-                    if (i + 6 <= raw.size() && raw[i] == '\\' && raw[i + 1] == 'u') {
+                if (cp >= 0xD800u && cp <= 0xDBFFu)
+                {
+                    if (i + 6 <= raw.size() && raw[i] == '\\' && raw[i + 1] == 'u')
+                    {
                         auto low_opt = ParseHex4_(raw, i + 2);
-                        if (!low_opt || *low_opt < 0xDC00u || *low_opt > 0xDFFFu) {
+
+                        if (!low_opt || *low_opt < 0xDC00u || *low_opt > 0xDFFFu)
+                        {
                             return std::nullopt;
                         }
 
                         cp = 0x10000u + ((cp - 0xD800u) << 10) + (*low_opt - 0xDC00u);
                         i += 6;
-                    } else {
+                    }
+                    else
+                    {
                         return std::nullopt;
                     }
-                } else if (cp >= 0xDC00u && cp <= 0xDFFFu) {
+                }
+                else if (cp >= 0xDC00u && cp <= 0xDFFFu)
+                {
                     return std::nullopt;
                 }
 
-                if (!EncodeUtf8_(decoded, cp)) {
+                if (!EncodeUtf8_(decoded, cp))
+                {
                     return std::nullopt;
                 }
                 break;
@@ -310,70 +380,94 @@ struct ParserState {
      * exponent, validating syntax before conversion.
      * @returns Parsed numeric JSON value or `std::nullopt` if input is malformed.
      */
-    [[nodiscard]] std::optional<utils::JSONValue> ParseNumber() {
+    [[nodiscard]] std::optional<utils::JSONValue> ParseNumber()
+    {
         size_t const start = pos;
-        if (Peek() == '-') {
+
+        if (Peek() == '-')
+        {
             ++pos;
         }
 
-        if (!std::isdigit(static_cast<unsigned char>(Peek()))) {
+        if (!std::isdigit(static_cast<unsigned char>(Peek())))
+        {
             return std::nullopt;
         }
 
-        if (Peek() == '0') {
+        if (Peek() == '0')
+        {
             ++pos;
 
-            if (!AtEnd() && std::isdigit(static_cast<unsigned char>(Peek()))) {
+            if (!AtEnd() && std::isdigit(static_cast<unsigned char>(Peek())))
+            {
                 return std::nullopt;
             }
-        } else {
-            while (!AtEnd() && std::isdigit(static_cast<unsigned char>(input[pos]))) {
+        }
+        else
+        {
+            while (!AtEnd() && std::isdigit(static_cast<unsigned char>(input[pos])))
+            {
                 ++pos;
             }
         }
 
         bool is_float = false;
-        if (!AtEnd() && input[pos] == '.') {
+
+        if (!AtEnd() && input[pos] == '.')
+        {
             is_float = true;
             ++pos;
 
-            if (AtEnd() || !std::isdigit(static_cast<unsigned char>(input[pos]))) {
+            if (AtEnd() || !std::isdigit(static_cast<unsigned char>(input[pos])))
+            {
                 return std::nullopt;
             }
-            while (!AtEnd() && std::isdigit(static_cast<unsigned char>(input[pos]))) {
+            while (!AtEnd() && std::isdigit(static_cast<unsigned char>(input[pos])))
+            {
                 ++pos;
             }
         }
 
-        if (!AtEnd() && (input[pos] == 'e' || input[pos] == 'E')) {
+        if (!AtEnd() && (input[pos] == 'e' || input[pos] == 'E'))
+        {
             is_float = true;
             ++pos;
 
-            if (!AtEnd() && (input[pos] == '+' || input[pos] == '-')) {
+            if (!AtEnd() && (input[pos] == '+' || input[pos] == '-'))
+            {
                 ++pos;
             }
-            if (AtEnd() || !std::isdigit(static_cast<unsigned char>(input[pos]))) {
+            if (AtEnd() || !std::isdigit(static_cast<unsigned char>(input[pos])))
+            {
                 return std::nullopt;
             }
-            while (!AtEnd() && std::isdigit(static_cast<unsigned char>(input[pos]))) {
+            while (!AtEnd() && std::isdigit(static_cast<unsigned char>(input[pos])))
+            {
                 ++pos;
             }
         }
 
         std::string_view const num_str = input.substr(start, pos - start);
 
-        if (is_float) {
+        if (is_float)
+        {
             double d{};
             auto [end, ec] = std::from_chars(num_str.data(), num_str.data() + num_str.size(), d);
+
             if (ec != std::errc{} || end != num_str.data() + num_str.size() || !std::isfinite(d))
+            {
                 return std::nullopt;
+            }
             return utils::JSONValue(d);
         }
 
-        if (num_str[0] == '-') {
+        if (num_str[0] == '-')
+        {
             int64_t i64;
             auto [p, ec] = std::from_chars(num_str.data(), num_str.data() + num_str.size(), i64);
-            if (ec != std::errc{}) {
+
+            if (ec != std::errc{})
+            {
                 return std::nullopt;
             }
 
@@ -382,7 +476,9 @@ struct ParserState {
 
         uint64_t u64;
         auto [p, ec] = std::from_chars(num_str.data(), num_str.data() + num_str.size(), u64);
-        if (ec != std::errc{}) {
+
+        if (ec != std::errc{})
+        {
             return std::nullopt;
         }
 
@@ -395,21 +491,28 @@ struct ParserState {
      * square brackets.
      * @returns Parsed array value or `std::nullopt` if input is malformed.
      */
-    [[nodiscard]] std::optional<utils::JSONValue> ParseArray() {
-        if (!Expect('[')) {
+    [[nodiscard]] std::optional<utils::JSONValue> ParseArray()
+    {
+        if (!Expect('['))
+        {
             return std::nullopt;
         }
         SkipWhitespace();
 
         utils::JSONArray arr;
-        if (Peek() == ']') {
+
+        if (Peek() == ']')
+        {
             ++pos;
             return utils::JSONValue(std::move(arr));
         }
 
-        while (true) {
+        while (true)
+        {
             auto val = ParseValue();
-            if (!val) {
+
+            if (!val)
+            {
                 return std::nullopt;
             }
 
@@ -417,17 +520,24 @@ struct ParserState {
 
             SkipWhitespace();
             char c = Peek();
-            if (c == ']') {
+
+            if (c == ']')
+            {
                 ++pos;
                 break;
             }
-            if (c == ',') {
+            if (c == ',')
+            {
                 ++pos;
                 SkipWhitespace();
-                if (Peek() == ']') {
+
+                if (Peek() == ']')
+                {
                     return std::nullopt;
                 }
-            } else {
+            }
+            else
+            {
                 return std::nullopt;
             }
         }
@@ -441,35 +551,46 @@ struct ParserState {
      * curly braces.
      * @returns Parsed object value or `std::nullopt` if input is malformed.
      */
-    [[nodiscard]] std::optional<utils::JSONValue> ParseObject() {
-        if (!Expect('{')) {
+    [[nodiscard]] std::optional<utils::JSONValue> ParseObject()
+    {
+        if (!Expect('{'))
+        {
             return std::nullopt;
         }
         SkipWhitespace();
 
         utils::JSONObject obj;
         std::unordered_set<std::string> keys;
-        if (Peek() == '}') {
+
+        if (Peek() == '}')
+        {
             ++pos;
             return utils::JSONValue(std::move(obj));
         }
 
-        while (true) {
+        while (true)
+        {
             SkipWhitespace();
 
             auto key = ParseString();
-            if (!key || keys.size() >= 4096 || !keys.insert(*key).second) {
+
+            if (!key || keys.size() >= 4096 || !keys.insert(*key).second)
+            {
                 return std::nullopt;
             }
 
             SkipWhitespace();
-            if (!Expect(':')) {
+
+            if (!Expect(':'))
+            {
                 return std::nullopt;
             }
             SkipWhitespace();
 
             auto val = ParseValue();
-            if (!val) {
+
+            if (!val)
+            {
                 return std::nullopt;
             }
 
@@ -477,17 +598,24 @@ struct ParserState {
             SkipWhitespace();
 
             char c = Peek();
-            if (c == '}') {
+
+            if (c == '}')
+            {
                 ++pos;
                 break;
             }
-            if (c == ',') {
+            if (c == ',')
+            {
                 ++pos;
                 SkipWhitespace();
-                if (Peek() == '}') {
+
+                if (Peek() == '}')
+                {
                     return std::nullopt;
                 }
-            } else {
+            }
+            else
+            {
                 return std::nullopt;
             }
         }
@@ -500,42 +628,56 @@ struct ParserState {
      * character.
      * @returns Parsed JSON value or `std::nullopt` if input is malformed.
      */
-    [[nodiscard]] std::optional<utils::JSONValue> ParseValue() {
+    [[nodiscard]] std::optional<utils::JSONValue> ParseValue()
+    {
         if (depth >= 64 || ++nodes > 1000000)
+        {
             return std::nullopt;
-        struct DepthGuard {
+        }
+
+        struct DepthGuard
+        {
             size_t& depth;
-            ~DepthGuard() {
+
+            ~DepthGuard()
+            {
                 --depth;
             }
         } guard{depth};
+
         ++depth;
         SkipWhitespace();
         char c = Peek();
-        switch (c) {
+
+        switch (c)
+        {
         case 'n':
-            if (input.substr(pos, 4) == "null") {
+            if (input.substr(pos, 4) == "null")
+            {
                 pos += 4;
                 return utils::JSONValue();
             }
 
             return std::nullopt;
         case 't':
-            if (input.substr(pos, 4) == "true") {
+            if (input.substr(pos, 4) == "true")
+            {
                 pos += 4;
                 return utils::JSONValue(true);
             }
 
             return std::nullopt;
         case 'f':
-            if (input.substr(pos, 5) == "false") {
+            if (input.substr(pos, 5) == "false")
+            {
                 pos += 5;
                 return utils::JSONValue(false);
             }
 
             return std::nullopt;
         case '"':
-            if (auto parsed = ParseString()) {
+            if (auto parsed = ParseString())
+            {
                 return utils::JSONValue(*parsed);
             }
             return std::nullopt;
@@ -563,25 +705,35 @@ struct ParserState {
 
 } // namespace
 
-std::optional<ParseResult> Parse(std::string_view input) try {
+std::optional<ParseResult> Parse(std::string_view input)
+try
+{
     if (input.size() > 8 * 1024 * 1024)
+    {
         return std::nullopt;
+    }
     ParseResult result{utils::JSONValue()};
     ParserState state{input, 0, 0, 0};
 
     auto root = state.ParseValue();
-    if (!root) {
+
+    if (!root)
+    {
         return std::nullopt;
     }
 
     state.SkipWhitespace();
-    if (!state.AtEnd()) {
+
+    if (!state.AtEnd())
+    {
         return std::nullopt;
     }
 
     result.value = std::move(*root);
     return result;
-} catch (std::bad_alloc const&) {
+}
+catch (std::bad_alloc const&)
+{
     return std::nullopt;
 }
 

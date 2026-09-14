@@ -11,9 +11,11 @@
 
 #include "common/models/system_snapshot.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
-json::utils::JSONValue SystemSnapshot::ToJson() const {
+json::utils::JSONValue SystemSnapshot::ToJson() const
+{
     json::utils::JSONObject object{};
     object.reserve(8);
     object.emplace_back("telemetry", telemetry.ToJson());
@@ -29,32 +31,44 @@ json::utils::JSONValue SystemSnapshot::ToJson() const {
     return json::utils::JSONValue(std::move(object));
 }
 
-SystemSnapshot SystemSnapshot::FromJson(json::utils::JSONValue const& value) {
+SystemSnapshot SystemSnapshot::FromJson(json::utils::JSONValue const& value)
+{
     SystemSnapshot snapshot{};
-    if (auto t = value["telemetry"])
-        snapshot.telemetry = TelemetryInfo::FromJson(t->get());
 
-    if (auto ts = value["timestamp"]) {
-        if (auto parsed = ts->get().AsUInt64()) {
+    if (auto t = value["telemetry"])
+    {
+        snapshot.telemetry = TelemetryInfo::FromJson(t->get());
+    }
+
+    if (auto ts = value["timestamp"])
+    {
+        if (auto parsed = ts->get().AsUInt64())
+        {
             snapshot.timestamp = *parsed;
         }
     }
-    if (auto cpu = value["cpu"]) {
+    if (auto cpu = value["cpu"])
+    {
         snapshot.cpu = CPUMetrics::FromJson(cpu->get());
     }
-    if (auto memory = value["memory"]) {
+    if (auto memory = value["memory"])
+    {
         snapshot.memory = MemoryMetrics::FromJson(memory->get());
     }
-    if (auto disk = value["disk"]) {
+    if (auto disk = value["disk"])
+    {
         snapshot.disk = DiskMetrics::FromJson(disk->get());
     }
-    if (auto network = value["network"]) {
+    if (auto network = value["network"])
+    {
         snapshot.network = NetworkMetrics::FromJson(network->get());
     }
-    if (auto loadavg = value["loadavg"]) {
+    if (auto loadavg = value["loadavg"])
+    {
         snapshot.loadavg = LoadavgMetrics::FromJson(loadavg->get());
     }
-    if (auto process = value["process"]) {
+    if (auto process = value["process"])
+    {
         snapshot.process = ProcessMetrics::FromJson(process->get());
     }
 

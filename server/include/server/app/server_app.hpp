@@ -3,10 +3,16 @@
  */
 #pragma once
 #include "server/config/server_config.hpp"
-namespace web_htop::server {
-class ServerApp {
+
+namespace web_htop::server
+{
+class ServerApp
+{
   public:
-    explicit ServerApp(ServerConfig config) : config_(std::move(config)) {}
+    explicit ServerApp(ServerConfig config) : config_(std::move(config))
+    {
+    }
+
     int Run();
 
   private:

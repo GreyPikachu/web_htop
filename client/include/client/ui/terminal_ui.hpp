@@ -8,8 +8,10 @@
 #include <string>
 #include <termios.h>
 
-namespace web_htop::client::ui {
-struct ViewState {
+namespace web_htop::client::ui
+{
+struct ViewState
+{
     models::SystemSnapshot const* snapshot{};
     json::utils::JSONValue const* diagnostics{};
     std::deque<double> cpu_history, memory_history, rx_history;
@@ -20,16 +22,21 @@ struct ViewState {
     std::size_t scroll{};
     bool paused{}, editing_filter{}, help{}, recording{};
 };
+
 [[nodiscard]] std::string Sanitize(std::string_view text);
 [[nodiscard]] std::string Render(ViewState const& state, int width, int height, bool ansi = true);
-class TerminalUi {
+
+class TerminalUi
+{
   public:
     TerminalUi();
     ~TerminalUi();
     TerminalUi(TerminalUi const&) = delete;
     TerminalUi& operator=(TerminalUi const&) = delete;
     void Draw(ViewState const& state) const;
-    [[nodiscard]] bool Interactive() const noexcept {
+
+    [[nodiscard]] bool Interactive() const noexcept
+    {
         return interactive_;
     }
 

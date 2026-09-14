@@ -23,7 +23,8 @@
 #include <variant>     // std::variant
 #include <vector>      // std::vector
 
-namespace web_htop::json::utils {
+namespace web_htop::json::utils
+{
 
 class JSONValue;
 
@@ -46,7 +47,8 @@ using JSONVariant =
  * @details Stores one JSON type at a time and provides type checks, typed
  * accessors, indexing and string serialization.
  */
-class JSONValue {
+class JSONValue
+{
   public:
     /**
      * @brief Construct null JSON value.

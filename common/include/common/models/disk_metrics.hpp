@@ -15,14 +15,16 @@
 #include "common/json/utils.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief Disk subsystem metrics for one sampling point.
  * @details JSON serialization/deserialization includes fields: `timestamp`,
  * `total_bytes`, `available_bytes`, `used_bytes`, `used_percent`.
  */
-struct DiskMetrics {
+struct DiskMetrics
+{
     TimeStamp timestamp{};     ///< Sampling time in milliseconds since epoch
     Bytes total_bytes{};       ///< Total filesystem size in bytes
     Bytes available_bytes{};   ///< Space available for non-privileged users

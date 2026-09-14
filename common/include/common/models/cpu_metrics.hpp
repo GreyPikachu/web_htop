@@ -18,7 +18,8 @@
 #include "common/json/utils.hpp"
 #include "common/types.hpp"
 
-namespace web_htop::models {
+namespace web_htop::models
+{
 
 /**
  * @brief CPU metrics for a single sampling point.
@@ -27,7 +28,8 @@ namespace web_htop::models {
  * serialization/deserialization includes fields: `timestamp`, `core_count`,
  * `total_usage_percent`, `frequency_mhz`, `per_core_usage_percent`.
  */
-struct CPUMetrics {
+struct CPUMetrics
+{
     TimeStamp timestamp{};            ///< Sampling time in milliseconds since epoch
     CPUCores core_count{};            ///< Number of currently online CPU cores
     Percentage total_usage_percent{}; ///< Aggregated CPU usage in range [0.0, 100.0]

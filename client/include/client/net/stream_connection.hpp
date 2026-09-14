@@ -12,34 +12,50 @@
 #include <sys/socket.h>
 #include <vector>
 
-namespace web_htop::client {
-struct Address {
+namespace web_htop::client
+{
+struct Address
+{
     sockaddr_storage address{};
     socklen_t length{};
     int family{};
 };
+
 [[nodiscard]] std::vector<Address> Resolve(std::string const& host, unsigned port);
-class StreamConnection {
+
+class StreamConnection
+{
   public:
     using Clock = std::chrono::steady_clock;
     using Receiver = std::function<void(models::SystemSnapshot)>;
     explicit StreamConnection(std::vector<Address> addresses);
     void Tick(Clock::time_point now);
     void Handle(short events, Receiver const& receive);
-    [[nodiscard]] int Fd() const noexcept {
+
+    [[nodiscard]] int Fd() const noexcept
+    {
         return socket_.Get();
     }
+
     [[nodiscard]] short Events() const noexcept;
-    [[nodiscard]] std::string const& Status() const noexcept {
+
+    [[nodiscard]] std::string const& Status() const noexcept
+    {
         return status_;
     }
-    [[nodiscard]] bool Connected() const noexcept {
+
+    [[nodiscard]] bool Connected() const noexcept
+    {
         return connected_;
     }
-    [[nodiscard]] std::uint64_t Bytes() const noexcept {
+
+    [[nodiscard]] std::uint64_t Bytes() const noexcept
+    {
         return bytes_;
     }
-    [[nodiscard]] std::uint64_t Reconnects() const noexcept {
+
+    [[nodiscard]] std::uint64_t Reconnects() const noexcept
+    {
         return reconnects_;
     }
 
@@ -56,18 +72,29 @@ class StreamConnection {
     std::string status_{"connecting"};
     std::uint64_t bytes_{}, reconnects_{};
 };
-class HttpProbe {
+
+class HttpProbe
+{
   public:
-    explicit HttpProbe(std::vector<Address> addresses) : addresses_(std::move(addresses)) {}
+    explicit HttpProbe(std::vector<Address> addresses) : addresses_(std::move(addresses))
+    {
+    }
+
     void Tick();
     void Handle(short events);
-    [[nodiscard]] int Fd() const noexcept {
+
+    [[nodiscard]] int Fd() const noexcept
+    {
         return socket_.Get();
     }
+
     [[nodiscard]] short Events() const noexcept;
-    [[nodiscard]] json::utils::JSONValue const* Value() const {
+
+    [[nodiscard]] json::utils::JSONValue const* Value() const
+    {
         return value_ ? &value_->value : nullptr;
     }
+
     [[nodiscard]] double AgeSeconds() const;
 
   private:

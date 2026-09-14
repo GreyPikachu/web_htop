@@ -15,7 +15,8 @@
 #include <cstdint>     // Fixed-width integer types (std::uint64_t, std::uint32_t)
 #include <sys/types.h> // pid_t for process IDs
 
-namespace web_htop {
+namespace web_htop
+{
 
 // Basic type aliases for clarity and consistency
 using TimeStamp = std::uint64_t; ///< Milliseconds since epoch

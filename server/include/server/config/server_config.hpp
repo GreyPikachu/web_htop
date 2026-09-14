@@ -5,8 +5,11 @@
 #include <chrono>
 #include <cstddef>
 #include <string>
-namespace web_htop::server {
-struct ServerConfig {
+
+namespace web_htop::server
+{
+struct ServerConfig
+{
     std::string bind_address{"127.0.0.1"};
     unsigned port{8080}, streaming_port{9999};
     std::chrono::milliseconds poll_interval{1000}, request_timeout{3000}, write_timeout{5000};

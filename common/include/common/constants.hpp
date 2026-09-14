@@ -14,14 +14,16 @@
 
 #include <string_view> // std::string_view for constant string paths
 
-namespace web_htop {
+namespace web_htop
+{
 
 /**
  * @namespace /proc filesystem paths
  *
  * @brief Constants for paths within the /proc filesystem
  */
-namespace proc {
+namespace proc
+{
 
 constexpr std::string_view PROC = "/proc/";     ///< `/proc` prefix for process-specific file paths
 constexpr std::string_view STAT = "/proc/stat"; ///< Path to aggregated CPU statistics
