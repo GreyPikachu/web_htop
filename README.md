@@ -88,12 +88,12 @@ bash scripts/run_client.sh localhost 9999 8080
 
 The client separates the system into focused screens instead of compressing every number into one table:
 
-1. **System** вЂ” host health, CPU, memory, disk, network, and freshness.
-2. **Processes** вЂ” sortable process telemetry with interactive filtering.
-3. **CPU Matrix** вЂ” per-core utilization using the real Linux CPU identifiers.
-4. **Pressure** вЂ” CPU, memory, and I/O PSI signals.
-5. **Cgroups** вЂ” resource consumption and limits from cgroup v2.
-6. **Transport** вЂ” active sessions, queued output, dropped snapshots, and network health.
+1. **System** в host health, CPU, memory, disk, network, and freshness.
+2. **Processes** в sortable process telemetry with interactive filtering.
+3. **CPU Matrix** в per-core utilization using the real Linux CPU identifiers.
+4. **Pressure** в CPU, memory, and I/O PSI signals.
+5. **Cgroups** в resource consumption and limits from cgroup v2.
+6. **Transport** в active sessions, queued output, dropped snapshots, and network health.
 
 The UI keeps receiving telemetry while a view is frozen for inspection. Recorded JSONL sessions can be replayed later, which makes intermittent performance problems easier to study and demonstrations reproducible.
 
