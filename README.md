@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/web-htop-hero.png" alt="WEB HTOP вЂ” Linux telemetry, under pressure" width="100%">
+<img width="1177" height="1218" alt="image" src="https://github.com/user-attachments/assets/009c7422-0bb5-478f-bf8e-1b79ece0d82d" />
 
 # WEB HTOP
 
@@ -46,6 +46,10 @@ The result is closer to a compact telemetry service than an `htop` clone: one co
 | **Slow-client isolation** | Latest-snapshot delivery prevents an observer that stopped reading from blocking everyone else |
 | **Diagnostics** | Collector freshness, transport counters, session state, and explicit warm-up/unavailable states |
 | **Offline analysis** | JSONL recording and replay for debugging telemetry without a live server |
+
+<img width="1135" height="744" alt="image" src="https://github.com/user-attachments/assets/a47f66e3-bf3b-4e20-a686-a5b39fe4114c" />
+<img width="1133" height="739" alt="image" src="https://github.com/user-attachments/assets/d75255a6-a791-4dc1-94c2-3da9e6d94886" />
+<img width="1136" height="739" alt="image" src="https://github.com/user-attachments/assets/5a649b4b-4ee4-4f14-971c-1b6120f85e1b" />
 
 ## Quick Start
 
