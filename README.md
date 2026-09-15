@@ -125,6 +125,7 @@ presentation only: the network reader continues to drain the stream.
 
 <div align="center">
 <img width="320" height="320" alt="web-htop-demo" src="https://github.com/user-attachments/assets/c332cb58-178b-4b89-b56c-b474648c3242" />
+</div>
 
 ## Architecture
 
