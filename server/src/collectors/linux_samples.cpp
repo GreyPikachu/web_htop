@@ -2,7 +2,7 @@
 #include <charconv>
 #include <cmath>
 #include <limits>
-#include <sstream>
+#include <numeric>
 
 namespace web_htop::server::collectors
 {
@@ -13,19 +13,65 @@ template <typename T> bool Parse(std::string_view s, T& value)
     auto [p, ec] = std::from_chars(s.data(), s.data() + s.size(), value);
     return ec == std::errc{} && p == s.data() + s.size();
 }
+
+constexpr std::string_view NextLine(std::string_view& s) noexcept
+{
+    if (s.empty())
+    {
+        return {};
+    }
+    const auto pos = s.find('\n');
+    if (pos == std::string_view::npos)
+    {
+        auto line = s;
+        s = {};
+        if (!line.empty() && line.back() == '\r')
+        {
+            line.remove_suffix(1);
+        }
+        return line;
+    }
+    auto line = s.substr(0, pos);
+    s.remove_prefix(pos + 1);
+    if (!line.empty() && line.back() == '\r')
+    {
+        line.remove_suffix(1);
+    }
+    return line;
+}
+
+constexpr std::string_view NextToken(std::string_view& s) noexcept
+{
+    while (!s.empty() && (s.front() == ' ' || s.front() == '\t'))
+    {
+        s.remove_prefix(1);
+    }
+    if (s.empty())
+    {
+        return {};
+    }
+    const auto pos = s.find_first_of(" \t\r\n");
+    if (pos == std::string_view::npos)
+    {
+        auto token = s;
+        s = {};
+        return token;
+    }
+    auto token = s.substr(0, pos);
+    s.remove_prefix(pos);
+    return token;
+}
 } // namespace
 
 CpuSample ParseCpu(std::string_view text)
 {
     CpuSample result;
-    std::istringstream input{std::string(text)};
-    std::string line;
+    auto remaining = text;
 
-    while (std::getline(input, line))
+    while (!remaining.empty())
     {
-        std::istringstream row(line);
-        std::string label;
-        row >> label;
+        auto line = NextLine(remaining);
+        auto label = NextToken(line);
 
         if (!label.starts_with("cpu"))
         {
@@ -33,7 +79,7 @@ CpuSample ParseCpu(std::string_view text)
         }
         int id = -1;
 
-        if (label != "cpu" && (!Parse(std::string_view(label).substr(3), id) || id < 0))
+        if (label != "cpu" && (!Parse(label.substr(3), id) || id < 0))
         {
             continue;
         }
@@ -42,9 +88,9 @@ CpuSample ParseCpu(std::string_view text)
 
         for (auto& value : times)
         {
-            std::string field;
+            auto field = NextToken(line);
 
-            if (!(row >> field) || !Parse(field, value))
+            if (field.empty() || !Parse(field, value))
             {
                 valid = false;
                 break;
@@ -113,12 +159,13 @@ std::optional<ProcessSample> ParseProcess(std::string_view text)
         return std::nullopt;
     }
     s.name = text.substr(open + 1, close - open - 1);
-    std::istringstream tail(std::string(text.substr(close + 1)));
-    std::array<std::string, 22> fields;
+    auto tail = text.substr(close + 1);
+    std::array<std::string_view, 22> fields{};
 
     for (auto& field : fields)
     {
-        if (!(tail >> field))
+        field = NextToken(tail);
+        if (field.empty())
         {
             return std::nullopt;
         }
@@ -128,13 +175,22 @@ std::optional<ProcessSample> ParseProcess(std::string_view text)
 
     if (fields[0].size() != 1 || !Parse(fields[11], user) || !Parse(fields[12], system) ||
         !Parse(fields[17], s.threads) || !Parse(fields[19], s.starttime) ||
-        !Parse(fields[21], rss) || user > std::numeric_limits<std::uint64_t>::max() - system)
+        !Parse(fields[21], rss))
     {
         return std::nullopt;
     }
-    s.state = fields[0][0];
+#if defined(__cpp_lib_saturation_arithmetic) && __cpp_lib_saturation_arithmetic >= 202311L
+    s.ticks = std::add_sat(user, system);
+    s.rss_pages = std::saturate_cast<std::uint64_t>(std::max<std::int64_t>(0, rss));
+#else
+    if (user > std::numeric_limits<std::uint64_t>::max() - system)
+    {
+        return std::nullopt;
+    }
     s.ticks = user + system;
     s.rss_pages = rss > 0 ? static_cast<std::uint64_t>(rss) : 0;
+#endif
+    s.state = fields[0][0];
     return s;
 }
 
@@ -142,27 +198,30 @@ models::PressureMetrics ParsePressure(std::string resource, std::string_view tex
 {
     models::PressureMetrics result;
     result.resource = std::move(resource);
-    std::istringstream input{std::string(text)};
-    std::string line;
+    auto remaining = text;
 
-    while (std::getline(input, line))
+    while (!remaining.empty())
     {
-        std::istringstream row(line);
-        std::string type, token;
-        row >> type;
+        auto line = NextLine(remaining);
+        auto type = NextToken(line);
 
-        while (row >> token)
+        while (!line.empty())
         {
+            auto token = NextToken(line);
+            if (token.empty())
+            {
+                break;
+            }
             auto equal = token.find('=');
 
-            if (equal == std::string::npos)
+            if (equal == std::string_view::npos)
             {
                 continue;
             }
             auto key = token.substr(0, equal);
             double n{};
 
-            if (!Parse(std::string_view(token).substr(equal + 1), n) || !std::isfinite(n) ||
+            if (!Parse(token.substr(equal + 1), n) || !std::isfinite(n) ||
                 n < 0 || n > 100)
             {
                 continue;

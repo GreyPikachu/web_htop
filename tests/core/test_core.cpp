@@ -193,7 +193,7 @@ void TestJsonOwnershipAndLimits()
 
 void TestCpu()
 {
-    auto sample = ParseCpu("cpu 10 20 30 40 50 60 70 80 9000 9000\ncpu7 1 2 3 4 5 6 7 8\n");
+    auto sample = ParseCpu("cpu  10\t20  30 40 50 60 70 80 9000 9000\r\n\ncpu7 1 2 3 4 5 6 7 8  \n");
     CHECK(sample.size() == 2);
     CHECK(sample.contains(7));
     CHECK(sample[-1][7] == 80);
@@ -216,6 +216,8 @@ void TestProcessParser()
     CHECK(p->rss_pages == 64);
     CHECK(p->name == "a tricky ) name\nwith newline");
     CHECK(!ParseProcess("42 (broken) R 1"));
+    CHECK(!ParseProcess(""));
+    CHECK(!ParseProcess("not_a_pid (name) R 1 2 3"));
 }
 
 void TestCollectorAndReuse()

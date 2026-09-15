@@ -1,5 +1,12 @@
 function(web_htop_configure_project_options)
-    set(CMAKE_CXX_STANDARD 20 PARENT_SCOPE)
+    set(WEB_HTOP_CXX_STANDARD "20" CACHE STRING
+        "C++ standard: 20 or 26"
+    )
+    set_property(CACHE WEB_HTOP_CXX_STANDARD PROPERTY STRINGS
+        20 26
+    )
+
+    set(CMAKE_CXX_STANDARD ${WEB_HTOP_CXX_STANDARD} PARENT_SCOPE)
     set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
     set(CMAKE_CXX_EXTENSIONS OFF PARENT_SCOPE)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON PARENT_SCOPE)
@@ -29,7 +36,11 @@ function(web_htop_configure_project_options)
     )
 
     add_library(web_htop_options INTERFACE)
-    target_compile_features(web_htop_options INTERFACE cxx_std_20)
+    if(WEB_HTOP_CXX_STANDARD STREQUAL "26")
+        target_compile_features(web_htop_options INTERFACE cxx_std_26)
+    else()
+        target_compile_features(web_htop_options INTERFACE cxx_std_20)
+    endif()
     target_compile_options(web_htop_options INTERFACE
         "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>"
     )
