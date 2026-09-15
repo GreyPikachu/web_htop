@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: web-htop
+spec:
+  template:
+    spec:
+      containers:
+        - name: server
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - DAC_READ_SEARCH
+                - SYS_PTRACE
