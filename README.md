@@ -18,7 +18,7 @@ locally, over SSH, from several terminals, or through machine-readable APIs.
 </div>
 
 <p align="center">
-  <img width="1135" alt="WEB HTOP system overview" src="https://github.com/user-attachments/assets/a47f66e3-bf3b-4e20-a686-a5b39fe4114c" />
+  <img width="1549" height="1015" alt="ChatGPT Image 15 сент  2026 г , 15_26_12" src="https://github.com/user-attachments/assets/fb9d4147-264d-49c4-8870-378228354042" />
 </p>
 
 ## Not `htop` over TCP
