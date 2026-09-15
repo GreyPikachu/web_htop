@@ -88,12 +88,12 @@ bash scripts/run_client.sh localhost 9999 8080
 
 The client separates the system into focused screens instead of compressing every number into one table:
 
-1. **System** в host health, CPU, memory, disk, network, and freshness.
-2. **Processes** в sortable process telemetry with interactive filtering.
-3. **CPU Matrix** в per-core utilization using the real Linux CPU identifiers.
-4. **Pressure** в CPU, memory, and I/O PSI signals.
-5. **Cgroups** в resource consumption and limits from cgroup v2.
-6. **Transport** в active sessions, queued output, dropped snapshots, and network health.
+1. **System** — host health, CPU, memory, disk, network, and freshness.
+2. **Processes** — sortable process telemetry with interactive filtering.
+3. **CPU Matrix** — per-core utilization using the real Linux CPU identifiers.
+4. **Pressure** — CPU, memory, and I/O PSI signals.
+5. **Cgroups** — resource consumption and limits from cgroup v2.
+6. **Transport** — active sessions, queued output, dropped snapshots, and network health.
 
 The UI keeps receiving telemetry while a view is frozen for inspection. Recorded JSONL sessions can be replayed later, which makes intermittent performance problems easier to study and demonstrations reproducible.
 
@@ -102,8 +102,11 @@ The UI keeps receiving telemetry while a view is frozen for inspection. Recorded
 The server exposes a small read-only API on port `8080` by default.
 
 ```bash
-# Liveness and telemetry readiness
+# Reactor liveness
 curl http://127.0.0.1:8080/health
+
+# Collector readiness and snapshot freshness
+curl http://127.0.0.1:8080/ready
 
 # Current system snapshot
 curl http://127.0.0.1:8080/metrics
@@ -112,21 +115,26 @@ curl http://127.0.0.1:8080/metrics
 curl http://127.0.0.1:8080/processes
 ```
 
-Example health response:
+Example liveness response:
 
 ```json
 {
-  "status": "ready",
-  "sequence": 1842,
-  "snapshot_age_ms": 37,
-  "collectors": {
-    "cpu": "ready",
-    "memory": "ready",
-    "network": "ready",
-    "processes": "ready"
-  }
+  "status": "alive",
+  "protocol_version": 2
 }
 ```
+
+Readiness is intentionally separate from liveness:
+
+```json
+{
+  "status": "ready"
+}
+```
+
+`/health` confirms that the reactor is serving requests. `/ready` additionally
+checks that the required collectors have produced a fresh snapshot and returns
+HTTP `503` while telemetry is warming up, degraded, or stale.
 
 The TCP stream carries length-prefixed JSON snapshots. A frame includes a protocol version, server instance identifier, and monotonically increasing sequence number so reconnects and restarts can be detected explicitly.
 
@@ -151,9 +159,27 @@ The server tracks dropped snapshots and clients that make no progress, making ov
 - Durations and rates use monotonic time rather than wall-clock time.
 - A first sample is `warming_up`; it is not silently reported as a zero rate.
 - Counter regressions establish a new baseline instead of producing an unsigned spike.
-- Network rates and byte units are named consistently.
+- Legacy wire fields `rx_kbps` and `tx_kbps` are explicitly documented as KiB/s; their names remain unchanged for protocol compatibility.
 - Process CPU history uses `(pid, starttime)` rather than PID alone.
 - Missing, stale, unavailable, and valid-zero values remain distinct.
+
+Process collection deliberately inspects every visible numeric `/proc` entry
+before selecting the transmitted top-K set. This keeps ranking correct but
+makes collection cost linear in the number of visible processes.
+`max_processes` bounds serialization and network payload size; it does not
+short-circuit procfs enumeration. The behavior can be measured reproducibly:
+
+```bash
+python3 scripts/benchmark.py \
+  --server ./build/server/web_htop_server \
+  --processes 5000 \
+  --clients 10 \
+  --requests 200 \
+  --output benchmark-5000.json
+```
+
+The benchmark uses a synthetic procfs fixture and records collection time,
+request latency, CPU consumption, peak RSS, and open descriptor count.
 
 ### Read-only by design
 
@@ -205,12 +231,6 @@ scripts/      build and run helpers
 docs/         architecture and operational notes
 ```
 
+## License
 
-## Container deployment
-
-The server image supports `linux/amd64` and `linux/arm64`. A Kubernetes
-DaemonSet, Kustomize configuration and local container smoke test are available
-under `packaging/k8s` and `scripts/container_smoke.sh`.
-
-See [Container and Kubernetes deployment](docs/container.md) for the security
-model, host filesystem mounts and deployment commands.
+WEB HTOP is available under the [MIT License](LICENSE).

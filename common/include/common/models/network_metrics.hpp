@@ -28,8 +28,8 @@ struct NetworkMetrics
     TimeStamp timestamp{};        ///< Sampling time in milliseconds since epoch
     Bytes rx_bytes_total{};       ///< Total received bytes since boot
     Bytes tx_bytes_total{};       ///< Total transmitted bytes since boot
-    KilobytesPerSecond rx_kbps{}; ///< Receive throughput in KB/s
-    KilobytesPerSecond tx_kbps{}; ///< Transmit throughput in KB/s
+    KilobytesPerSecond rx_kbps{}; ///< Receive throughput in KiB/s; legacy wire name
+    KilobytesPerSecond tx_kbps{}; ///< Transmit throughput in KiB/s; legacy wire name
 
     /**
      * @brief Serialize network metrics to JSON object.
