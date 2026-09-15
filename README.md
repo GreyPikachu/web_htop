@@ -9,7 +9,7 @@
 [![Build](https://img.shields.io/badge/build-CMake-064F8C?style=flat-square&logo=cmake)](https://cmake.org/)
 [![Network](https://img.shields.io/badge/I%2FO-epoll-00C7D9?style=flat-square)](https://man7.org/linux/man-pages/man7/epoll.7.html)
 
-WEB HTOP collects live Linux metrics, publishes coherent snapshots, exposes them through HTTP and framed TCP, and renders them in an interactive terminal console. It is designed around explicit ownership, bounded resource usage, graceful shutdown, and metrics whose meaning can be explained.
+WEB HTOP collects live Linux metrics, publishes coherent snapshots, exposes them through HTTP and framed TCP, and renders them in an interactive terminal console. It is designed around explicit ownership, bounded resource usage, graceful shutdown, and metrics whose meaning can be explained, with a custom-written JSON parser :)
 
 [Quick start](#quick-start) · [Why WEB HTOP](#why-web-htop) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
 
