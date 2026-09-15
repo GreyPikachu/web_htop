@@ -38,11 +38,11 @@ locally, over SSH, from several terminals, or through machine-readable APIs.
   <img width="1549" height="1015" alt="ChatGPT Image 15 сент  2026 г , 15_26_12" src="https://github.com/user-attachments/assets/fb9d4147-264d-49c4-8870-378228354042" />
 </p>
 
-## Not `htop` over TCP
+## Not htop over TCP
 
-`htop` is an excellent local process viewer. WEB HTOP solves a different problem:
-**collect once on the machine being investigated, then let several independent
-observers consume the same coherent telemetry stream.**
+htop is an excellent local process viewer. WEB HTOP solves a different problem:
+collect once on the machine being investigated, then let several independent
+observers consume the same coherent telemetry stream.
 
 Run the server on a Linux host and connect from another terminal, another machine,
 an SSH tunnel, a diagnostic script, or all of them at once. One observer can freeze
@@ -61,7 +61,7 @@ the UI or fall behind without stopping collection and without blocking the other
 ### The 02:13 problem
 
 One server is acting strange. Three people SSH into it. One opens a process monitor,
-one runs `curl`, and the third asks for a screenshot. By the time the screenshot
+one runs curl, and the third asks for a screenshot. By the time the screenshot
 arrives, the spike is gone and everyone has observed a slightly different moment.
 
 WEB HTOP replaces that ritual with one publication stream. The operator watches the
@@ -70,21 +70,21 @@ generations that would otherwise disappear. Fewer screenshots; better evidence.
 
 ## Why it is different
 
-- **One sampler, many readers.** Collection cost does not multiply with the number
+- One sampler, many readers. Collection cost does not multiply with the number
   of connected dashboards.
-- **A snapshot is a real boundary.** CPU, memory, process, pressure and transport
+- A snapshot is a real boundary. CPU, memory, process, pressure and transport
   sections are assembled before publication; readers never receive a half-updated
   object.
-- **Freshness beats backlog.** A dashboard needs the newest complete state, not
+- Freshness beats backlog. A dashboard needs the newest complete state, not
   fifty stale frames. Each session keeps one in-flight frame and one replaceable
   pending frame.
-- **Pressure is first-class.** PSI answers whether work is stalled on CPU, memory,
+- Pressure is first-class. PSI answers whether work is stalled on CPU, memory,
   or I/O even when utilization alone looks harmless.
-- **The monitor monitors itself.** Collector duration, snapshot age, queue usage,
+- The monitor monitors itself. Collector duration, snapshot age, queue usage,
   superseded frames, reconnects and timeouts are visible through diagnostics.
-- **Failures have names.** `warming_up`, `partial`, `unavailable`, `stale` and a
+- Failures have names. warming_up, partial, unavailable, stale and a
   valid numeric zero are not collapsed into the same value.
-- **Incidents are replayable.** Received generations can be recorded as JSONL and
+- Incidents are replayable. Received generations can be recorded as JSONL and
   replayed without a running server.
 
 ## One host, many observers
@@ -144,25 +144,14 @@ presentation only: the network reader continues to drain the stream.
 <img width="320" height="320" alt="web-htop-demo" src="https://github.com/user-attachments/assets/c332cb58-178b-4b89-b56c-b474648c3242" />
 </div>
 
-## Architecture
-
-```mermaid
-flowchart LR
-    K["Linux /proc, /sys, PSI, cgroup v2"] --> S["Sampling jthread"]
-    S --> P["Immutable published generation"]
-    P --> R["Single-owner epoll reactor"]
-    R --> T["Terminal observers"]
-    R --> H["HTTP tools and exporters"]
-```
-
 The steady-state server uses two threads with deliberately separate ownership:
 
-- the sampling `std::jthread` owns collectors and their previous counter values;
+- the sampling std::jthread owns collectors and their previous counter values;
 - the foreground reactor owns listeners, accepted sockets, session queues and
   network diagnostics.
 
 A generation is assembled, serialized, framed and timestamped before publication.
-`SharedState` release-stores a `shared_ptr<const PublishedSnapshot>`; readers acquire
+SharedState release-stores a shared_ptr<const PublishedSnapshot>; readers acquire
 one immutable version and keep it alive for the duration of their operation. The
 snapshot is encoded once, not once per connected client.
 
@@ -195,8 +184,8 @@ Start the server and client in separate terminals:
 ./build/client/web_htop_client localhost 9999 8080
 ```
 
-The server listens on `127.0.0.1` by default. HTTP uses port `8080`; framed
-telemetry uses port `9999`.
+The server listens on 127.0.0.1 by default. HTTP uses port 8080; framed
+telemetry uses port 9999.
 
 ## Record and replay
 
@@ -274,7 +263,7 @@ The parser is not just a minimal tokenizer. It handles:
 - configurable limits for input size, nesting depth, node count and object keys;
 - rejection of duplicate keys, malformed escapes and invalid UTF-8;
 - rejection of trailing data, non-finite values and incomplete documents;
-- non-throwing parse failures through `std::optional`.
+- non-throwing parse failures through std::optional.
 
 ```cpp
 #include "common/json/parser.hpp"
@@ -338,98 +327,8 @@ dependency.
 
 ## Engineering notes
 
-<details>
-<summary><strong>Socket ownership and descriptor reuse</strong></summary>
+to be continued...
 
-All sockets are move-only `UniqueFd` values. Only the reactor closes network
-descriptors. Epoll stores monotonically increasing session tokens rather than raw
-file descriptors, so an event left in a returned batch cannot accidentally address
-a different connection after the kernel reuses an FD number.
-
-The reactor is level-triggered and uses explicit fairness budgets: at most 32 accepts
-and 64 KiB of writes per session per turn. A `timerfd` drives deadlines; an `eventfd`
-wakes the loop when a newer generation is published.
-
-</details>
-
-<details>
-<summary><strong>Bounded backpressure</strong></summary>
-
-A session owns one current frame with a send offset and one pending slot. Before any
-byte is sent, the current frame may be replaced. After transmission begins, it must
-finish intact; only the pending frame may be superseded. This preserves TCP framing
-while preventing stale telemetry from building an unbounded queue.
-
-The global queue budget is 64 MiB. Write deadlines measure lack of progress and are
-not extended merely because newer telemetry exists.
-
-</details>
-
-<details>
-<summary><strong>Lifecycle and cancellation</strong></summary>
-
-`SIGINT` and `SIGTERM` are blocked before worker creation and consumed through
-`signalfd`; asynchronous signal handlers never call into arbitrary C++ code. Both
-listeners must bind before collection starts, and RAII rolls back partial startup.
-
-Shutdown releases network sessions, requests cooperative stop, wakes pending work,
-and joins the sampling thread in a defined order. Blocking socket operations cannot
-hold shutdown indefinitely.
-
-</details>
-
-<details>
-<summary><strong>Metric correctness</strong></summary>
-
-- rates use monotonic time rather than wall-clock time;
-- counter regression creates a new baseline instead of an unsigned spike;
-- a first observation is `warming_up`, not a fabricated zero rate;
-- processes are identified by `(pid, starttime)` to survive PID reuse;
-- CPU IDs come from Linux rather than vector positions;
-- `rx_kbps` and `tx_kbps` are retained wire names whose documented unit is KiB/s;
-- missing, stale, unavailable and valid-zero values remain distinguishable.
-
-Process collection intentionally scans every visible numeric `/proc` entry before
-selecting the transmitted top-K set. `max_processes` bounds serialization and wire
-size, not enumeration cost.
-
-</details>
-
-<details>
-<summary><strong>Defensive parsing</strong></summary>
-
-The JSON implementation owns its strings and limits input bytes, nesting depth,
-node count and object keys. It rejects duplicate keys, invalid UTF-8, malformed
-escapes, non-finite numbers and unsupported protocol versions. Remote process names
-are reduced to printable terminal cells before rendering; ANSI control sequences
-are emitted only by the renderer.
-
-</details>
-
-## Containers and Kubernetes
-
-The repository includes a multi-stage server image and Kubernetes DaemonSet manifests
-for amd64 and arm64 nodes:
-
-```bash
-docker buildx build --platform linux/amd64,linux/arm64 .
-kubectl apply -k packaging/k8s
-```
-
-The runtime image uses a non-root UID, a read-only root filesystem and dropped Linux
-capabilities. Host `/proc` and `/sys` mounts are read-only. Broader process access is
-an explicit opt-in overlay, not the default.
-
-Host PID visibility and host filesystem mounts remain sensitive privileges even
-without `privileged: true`. Read [the deployment notes](docs/container.md) before
-running WEB HTOP in a cluster.
-
-## Optional scheduler latency profiler
-
-`tools/scheduler` contains a separate libbpf/CO-RE profiler for run-queue latency:
-the time runnable work spends waiting before it reaches a CPU. It is opt-in and is
-never loaded by the ordinary telemetry server. Kernel BTF and BPF permissions are
-required; failure of the experimental profiler does not affect normal monitoring.
 
 ## Tests and measurements
 
@@ -471,23 +370,3 @@ packaging/    service and Kubernetes deployment files
 scripts/      run, benchmark and validation helpers
 docs/         contracts, architecture and operational notes
 ```
-
-## Documentation
-
-- [Architecture and ownership](docs/architecture.md)
-- [Metric definitions](docs/metrics.md)
-- [HTTP contract](docs/http_api.md)
-- [Streaming protocol](docs/protocol.md)
-- [Tests and measurements](docs/testing.md)
-- [Design decisions](docs/decisions.md)
-- [Container and Kubernetes deployment](docs/container.md)
-
-## License
-
-WEB HTOP is available under the [MIT License](LICENSE).
-
-<div align="center">
-
-Built by [Roman Snitko](https://github.com/RomanSnitko).
-
-</div>
