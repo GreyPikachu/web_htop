@@ -205,3 +205,12 @@ scripts/      build and run helpers
 docs/         architecture and operational notes
 ```
 
+
+## Container deployment
+
+The server image supports `linux/amd64` and `linux/arm64`. A Kubernetes
+DaemonSet, Kustomize configuration and local container smoke test are available
+under `packaging/k8s` and `scripts/container_smoke.sh`.
+
+See [Container and Kubernetes deployment](docs/container.md) for the security
+model, host filesystem mounts and deployment commands.
