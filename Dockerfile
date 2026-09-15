@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
-# Building on TARGETPLATFORM intentionally uses BuildKit/QEMU for arm64 builds.
-# It is slower than a cross toolchain, but keeps compiler and target ABI aligned.
-ARG TARGETPLATFORM
-FROM --platform=${TARGETPLATFORM} debian:bookworm-slim AS build
+# Buildx selects the target architecture for this stage. Non-native targets
+# are compiled under the QEMU worker configured by the container workflow.
+FROM debian:bookworm-slim AS build
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
@@ -24,8 +23,7 @@ RUN cmake -S . -B build -G Ninja \
     && cmake --build build --target web_htop_server --parallel \
     && strip build/server/web_htop_server
 
-ARG TARGETPLATFORM
-FROM --platform=${TARGETPLATFORM} debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim AS runtime
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
