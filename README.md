@@ -2,172 +2,355 @@
 
 # WEB HTOP
 
-**A real-time Linux telemetry engine built for the cases where a pretty CPU bar is not enough.**
+### One Linux host. Many observers. No screenshot archaeology.
 
+A C++20 telemetry server and terminal console for watching Linux systems live -
+locally, over SSH, from several terminals, or through machine-readable APIs.
+
+[![C++ checks](https://github.com/RomanSnitko/web_htop/actions/workflows/ci.yml/badge.svg)](https://github.com/RomanSnitko/web_htop/actions/workflows/ci.yml)
+[![Container](https://github.com/RomanSnitko/web_htop/actions/workflows/container.yml/badge.svg)](https://github.com/RomanSnitko/web_htop/actions/workflows/container.yml)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus)](https://en.cppreference.com/w/cpp/20)
-[![Platform](https://img.shields.io/badge/platform-Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](https://kernel.org/)
-[![Build](https://img.shields.io/badge/build-CMake-064F8C?style=flat-square&logo=cmake)](https://cmake.org/)
-[![Network](https://img.shields.io/badge/I%2FO-epoll-00C7D9?style=flat-square)](https://man7.org/linux/man-pages/man7/epoll.7.html)
+[![Linux](https://img.shields.io/badge/platform-Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](https://kernel.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
 
-WEB HTOP collects live Linux metrics, publishes coherent snapshots, exposes them through HTTP and framed TCP, and renders them in an interactive terminal console. It is designed around explicit ownership, bounded resource usage, graceful shutdown, and metrics whose meaning can be explained, with a custom-written JSON parser :)
-
-[Quick start](#quick-start) · [Why WEB HTOP](#why-web-htop) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
+[Quick start](#quick-start) · [Remote observation](#one-host-many-observers) · [Architecture](#architecture) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
 
 </div>
 
----
+<p align="center">
+  <img width="1135" alt="WEB HTOP system overview" src="https://github.com/user-attachments/assets/a47f66e3-bf3b-4e20-a686-a5b39fe4114c" />
+</p>
 
-## Why WEB HTOP?
+## Not `htop` over TCP
 
-Most terminal monitors answer one question: what is using my CPU right now?
+`htop` is an excellent local process viewer. WEB HTOP solves a different problem:
+**collect once on the machine being investigated, then let several independent
+observers consume the same coherent telemetry stream.**
 
-WEB HTOP is built for the next set of questions:
+Run the server on a Linux host and connect from another terminal, another machine,
+an SSH tunnel, a diagnostic script, or all of them at once. One observer can freeze
+the UI or fall behind without stopping collection and without blocking the others.
 
-- Is the machine busy, or are workloads stalled by CPU, memory, or I/O pressure?
-- Which cgroup is consuming the resources?
-- Are network counters healthy, and how quickly is traffic moving?
-- Is telemetry still fresh, or is a collector unavailable or warming up?
-- Can one slow client stall every other observer?
-- Can the server stop cleanly while connections and collectors are active?
+| | Traditional local monitor | WEB HTOP |
+|---|---|---|
+| Collection | Tied to one interactive session | Dedicated server-side sampler |
+| Observers | One terminal | Multiple independent TCP and HTTP consumers |
+| Consistency | Values redraw as they are read | Immutable, versioned generations |
+| Slow client | Usually not a concern | Isolated by bounded latest-wins delivery |
+| After the incident | Terminal state is gone | JSONL recording and offline replay |
+| Automation | Human-oriented output | HTTP, framed JSON and Prometheus exporter |
+| Deployment | Local binary | Native, container, or Kubernetes DaemonSet |
 
-The result is closer to a compact telemetry service than an `htop` clone: one collector pipeline, multiple read-only consumers, a terminal dashboard, and machine-readable APIs.
+### The 02:13 problem
 
-## Highlights
+One server is acting strange. Three people SSH into it. One opens a process monitor,
+one runs `curl`, and the third asks for a screenshot. By the time the screenshot
+arrives, the spike is gone and everyone has observed a slightly different moment.
 
-| Area | What WEB HTOP provides |
+WEB HTOP replaces that ritual with one publication stream. The operator watches the
+live dashboard, a teammate connects to the same host, and a recorder keeps the
+generations that would otherwise disappear. Fewer screenshots; better evidence.
+
+## Why it is different
+
+- **One sampler, many readers.** Collection cost does not multiply with the number
+  of connected dashboards.
+- **A snapshot is a real boundary.** CPU, memory, process, pressure and transport
+  sections are assembled before publication; readers never receive a half-updated
+  object.
+- **Freshness beats backlog.** A dashboard needs the newest complete state, not
+  fifty stale frames. Each session keeps one in-flight frame and one replaceable
+  pending frame.
+- **Pressure is first-class.** PSI answers whether work is stalled on CPU, memory,
+  or I/O even when utilization alone looks harmless.
+- **The monitor monitors itself.** Collector duration, snapshot age, queue usage,
+  superseded frames, reconnects and timeouts are visible through diagnostics.
+- **Failures have names.** `warming_up`, `partial`, `unavailable`, `stale` and a
+  valid numeric zero are not collapsed into the same value.
+- **Incidents are replayable.** Received generations can be recorded as JSONL and
+  replayed without a running server.
+
+## One host, many observers
+
+The safe default is loopback-only. For remote use, keep the server on loopback and
+forward both interfaces over SSH:
+
+```bash
+# On the machine being monitored
+./build/server/web_htop_server
+```
+
+```bash
+# On every observer machine
+ssh -N \
+  -L 9999:127.0.0.1:9999 \
+  -L 8080:127.0.0.1:8080 \
+  user@monitored-host
+```
+
+```bash
+# Each observer gets an independent live console
+./build/client/web_htop_client localhost 9999 8080
+```
+
+The TCP stream fans out complete snapshots to dashboards. HTTP serves point-in-time
+queries and diagnostics. A slow TCP reader cannot hold a mutex needed by another
+client or by the collector, and memory remains bounded by per-session and global
+queue limits.
+
+> WEB HTOP does not implement transport authentication or TLS. Keep the default
+> loopback binding, use SSH, or place explicitly exposed listeners inside a trusted
+> network boundary.
+
+## See it in action
+
+| Process Explorer | I/O telemetry |
 |---|---|
-| **System telemetry** | CPU, per-core load, memory, swap, disks, network interfaces, uptime, load average, and processes |
-| **Linux pressure** | PSI signals for CPU, memory, and I/O, plus cgroup v2 resource visibility |
-| **Process identity** | Samples keyed by PID and process start time, avoiding false deltas after PID reuse |
-| **Coherent reads** | Immutable snapshots published as a single version to terminal, TCP, and HTTP readers |
-| **Network runtime** | Linux `epoll`, framed TCP telemetry, HTTP endpoints, deadlines, and bounded client queues |
-| **Slow-client isolation** | Latest-snapshot delivery prevents an observer that stopped reading from blocking everyone else |
-| **Diagnostics** | Collector freshness, transport counters, session state, and explicit warm-up/unavailable states |
-| **Offline analysis** | JSONL recording and replay for debugging telemetry without a live server |
+| <img width="560" alt="WEB HTOP process explorer" src="https://github.com/user-attachments/assets/d75255a6-a791-4dc1-94c2-3da9e6d94886" /> | <img width="560" alt="WEB HTOP I/O workspace" src="https://github.com/user-attachments/assets/5a649b4b-4ee4-4f14-971c-1b6120f85e1b" /> |
 
-<img width="1135" height="744" alt="image" src="https://github.com/user-attachments/assets/a47f66e3-bf3b-4e20-a686-a5b39fe4114c" />
-<img width="1133" height="739" alt="image" src="https://github.com/user-attachments/assets/d75255a6-a791-4dc1-94c2-3da9e6d94886" />
-<img width="1136" height="739" alt="image" src="https://github.com/user-attachments/assets/5a649b4b-4ee4-4f14-971c-1b6120f85e1b" />
+The client has six focused workspaces:
 
-## Quick Start
+| Key | Workspace | What it answers |
+|---:|---|---|
+| `1` | Overview | Is the host healthy and is telemetry fresh? |
+| `2` | Processes | Which processes consume CPU and resident memory? |
+| `3` | I/O | Which interfaces and block devices are active or failing? |
+| `4` | Pressure | Are tasks stalled, and what does the selected cgroup see? |
+| `5` | Transport | Are clients falling behind or being disconnected? |
+| `6` | CPU Matrix | How is work distributed across real Linux CPU IDs? |
 
-WEB HTOP targets Linux and uses CMake with a C++20 compiler.
+Use `c/m/p/t` to sort processes, `/` to filter, `j/k` to scroll, `Space` to
+freeze the visible generation, and `h` for the complete key map. Freeze affects
+presentation only: the network reader continues to drain the stream.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    K["Linux /proc, /sys, PSI, cgroup v2"] --> S["Sampling jthread"]
+    S --> P["Immutable published generation"]
+    P --> R["Single-owner epoll reactor"]
+    R --> T["Terminal observers"]
+    R --> H["HTTP tools and exporters"]
+```
+
+The steady-state server uses two threads with deliberately separate ownership:
+
+- the sampling `std::jthread` owns collectors and their previous counter values;
+- the foreground reactor owns listeners, accepted sockets, session queues and
+  network diagnostics.
+
+A generation is assembled, serialized, framed and timestamped before publication.
+`SharedState` release-stores a `shared_ptr<const PublishedSnapshot>`; readers acquire
+one immutable version and keep it alive for the duration of their operation. The
+snapshot is encoded once, not once per connected client.
+
+The publication boundary is honest about its limits: Linux metrics are read
+sequentially, not atomically by the kernel. Collection start/end timestamps and
+per-section durations expose that sampling window.
+
+## Quick start
+
+Requirements: Linux or WSL2, CMake 3.20+, a C++20 compiler, and Python 3 for the
+integration tests.
 
 ```bash
 git clone https://github.com/RomanSnitko/web_htop.git
 cd web_htop
 
 cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
   -DWEB_HTOP_BUILD_APPS=ON \
   -DWEB_HTOP_BUILD_TESTS=ON
 
 cmake --build build -j"$(nproc)"
-ctest --test-dir build --output-on-failure
+ctest --test-dir build --output-on-failure --no-tests=error
 ```
 
-Start the telemetry server:
+Start the server and client in separate terminals:
 
 ```bash
 ./build/server/web_htop_server
-```
-
-Open the terminal console in another shell:
-
-```bash
 ./build/client/web_htop_client localhost 9999 8080
 ```
 
-Or use the helper scripts:
+The server listens on `127.0.0.1` by default. HTTP uses port `8080`; framed
+telemetry uses port `9999`.
+
+## Record and replay
+
+Capture every received generation without interrupting the live UI:
 
 ```bash
-bash scripts/run_server.sh
-bash scripts/run_client.sh localhost 9999 8080
+./build/client/web_htop_client localhost 9999 8080 \
+  --record incident.jsonl
 ```
 
-## One Console, Several Views
+Replay it later without a server:
 
-The client separates the system into focused screens instead of compressing every number into one table:
+```bash
+./build/client/web_htop_client --replay incident.jsonl
+```
 
-1. **System** — host health, CPU, memory, disk, network, and freshness.
-2. **Processes** — sortable process telemetry with interactive filtering.
-3. **CPU Matrix** — per-core utilization using the real Linux CPU identifiers.
-4. **Pressure** — CPU, memory, and I/O PSI signals.
-5. **Cgroups** — resource consumption and limits from cgroup v2.
-6. **Transport** — active sessions, queued output, dropped snapshots, and network health.
+Request one machine-readable snapshot:
 
-The UI keeps receiving telemetry while a view is frozen for inspection. Recorded JSONL sessions can be replayed later, which makes intermittent performance problems easier to study and demonstrations reproducible.
+```bash
+./build/client/web_htop_client localhost 9999 8080 --once
+```
 
 ## HTTP API
 
-The server exposes a small read-only API on port `8080` by default.
+```bash
+curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:8080/ready
+curl http://127.0.0.1:8080/metrics
+curl http://127.0.0.1:8080/processes
+curl http://127.0.0.1:8080/diagnostics
+curl http://127.0.0.1:8080/exporter
+```
+
+| Endpoint | Contract |
+|---|---|
+| `/health` | Reactor liveness; independent of collector readiness |
+| `/ready` | Required collectors are healthy and the snapshot is fresh |
+| `/metrics` | Complete current version-2 generation |
+| `/processes` | Top-K process set with sequence and truncation metadata |
+| `/diagnostics` | Sessions, queue pressure, timeouts, encoding cost and snapshot age |
+| `/exporter` | Low-cardinality Prometheus metrics about WEB HTOP itself |
+
+HTTP is intentionally small: GET-only, bounded 8 KiB headers, one request per
+connection, explicit deadlines, and no request bodies or keep-alive state machine.
+
+## Streaming protocol
+
+The stream is not a sequence of native C++ structures. Each message is a four-byte
+big-endian length followed by an owned UTF-8 JSON document, capped at 8 MiB.
+
+Every frame is a full snapshot and carries:
+
+- protocol version;
+- message type;
+- server instance ID;
+- monotonically increasing generation sequence;
+- collection timestamps and section status.
+
+After reconnect, a client needs only the next frame — there is no delta-recovery
+protocol. A changed instance ID identifies a server restart; a sequence gap identifies
+skipped complete generations.
+
+## Engineering notes
+
+<details>
+<summary><strong>Socket ownership and descriptor reuse</strong></summary>
+
+All sockets are move-only `UniqueFd` values. Only the reactor closes network
+descriptors. Epoll stores monotonically increasing session tokens rather than raw
+file descriptors, so an event left in a returned batch cannot accidentally address
+a different connection after the kernel reuses an FD number.
+
+The reactor is level-triggered and uses explicit fairness budgets: at most 32 accepts
+and 64 KiB of writes per session per turn. A `timerfd` drives deadlines; an `eventfd`
+wakes the loop when a newer generation is published.
+
+</details>
+
+<details>
+<summary><strong>Bounded backpressure</strong></summary>
+
+A session owns one current frame with a send offset and one pending slot. Before any
+byte is sent, the current frame may be replaced. After transmission begins, it must
+finish intact; only the pending frame may be superseded. This preserves TCP framing
+while preventing stale telemetry from building an unbounded queue.
+
+The global queue budget is 64 MiB. Write deadlines measure lack of progress and are
+not extended merely because newer telemetry exists.
+
+</details>
+
+<details>
+<summary><strong>Lifecycle and cancellation</strong></summary>
+
+`SIGINT` and `SIGTERM` are blocked before worker creation and consumed through
+`signalfd`; asynchronous signal handlers never call into arbitrary C++ code. Both
+listeners must bind before collection starts, and RAII rolls back partial startup.
+
+Shutdown releases network sessions, requests cooperative stop, wakes pending work,
+and joins the sampling thread in a defined order. Blocking socket operations cannot
+hold shutdown indefinitely.
+
+</details>
+
+<details>
+<summary><strong>Metric correctness</strong></summary>
+
+- rates use monotonic time rather than wall-clock time;
+- counter regression creates a new baseline instead of an unsigned spike;
+- a first observation is `warming_up`, not a fabricated zero rate;
+- processes are identified by `(pid, starttime)` to survive PID reuse;
+- CPU IDs come from Linux rather than vector positions;
+- `rx_kbps` and `tx_kbps` are retained wire names whose documented unit is KiB/s;
+- missing, stale, unavailable and valid-zero values remain distinguishable.
+
+Process collection intentionally scans every visible numeric `/proc` entry before
+selecting the transmitted top-K set. `max_processes` bounds serialization and wire
+size, not enumeration cost.
+
+</details>
+
+<details>
+<summary><strong>Defensive parsing</strong></summary>
+
+The JSON implementation owns its strings and limits input bytes, nesting depth,
+node count and object keys. It rejects duplicate keys, invalid UTF-8, malformed
+escapes, non-finite numbers and unsupported protocol versions. Remote process names
+are reduced to printable terminal cells before rendering; ANSI control sequences
+are emitted only by the renderer.
+
+</details>
+
+## Containers and Kubernetes
+
+The repository includes a multi-stage server image and Kubernetes DaemonSet manifests
+for amd64 and arm64 nodes:
 
 ```bash
-# Reactor liveness
-curl http://127.0.0.1:8080/health
-
-# Collector readiness and snapshot freshness
-curl http://127.0.0.1:8080/ready
-
-# Current system snapshot
-curl http://127.0.0.1:8080/metrics
-
-# Current process sample
-curl http://127.0.0.1:8080/processes
+docker buildx build --platform linux/amd64,linux/arm64 .
+kubectl apply -k packaging/k8s
 ```
 
-Example liveness response:
+The runtime image uses a non-root UID, a read-only root filesystem and dropped Linux
+capabilities. Host `/proc` and `/sys` mounts are read-only. Broader process access is
+an explicit opt-in overlay, not the default.
 
-```json
-{
-  "status": "alive",
-  "protocol_version": 2
-}
-```
+Host PID visibility and host filesystem mounts remain sensitive privileges even
+without `privileged: true`. Read [the deployment notes](docs/container.md) before
+running WEB HTOP in a cluster.
 
-Readiness is intentionally separate from liveness:
+## Optional scheduler latency profiler
 
-```json
-{
-  "status": "ready"
-}
-```
+`tools/scheduler` contains a separate libbpf/CO-RE profiler for run-queue latency:
+the time runnable work spends waiting before it reaches a CPU. It is opt-in and is
+never loaded by the ordinary telemetry server. Kernel BTF and BPF permissions are
+required; failure of the experimental profiler does not affect normal monitoring.
 
-`/health` confirms that the reactor is serving requests. `/ready` additionally
-checks that the required collectors have produced a fresh snapshot and returns
-HTTP `503` while telemetry is warming up, degraded, or stale.
+## Tests and measurements
 
-The TCP stream carries length-prefixed JSON snapshots. A frame includes a protocol version, server instance identifier, and monotonically increasing sequence number so reconnects and restarts can be detected explicitly.
+The test suite exercises more than successful parsing:
 
-Collectors build the next snapshot away from readers. Publication swaps in one complete immutable version, so a consumer never observes a half-updated system state. The network layer consumes that published state; it does not run collectors while holding transport locks.
+- every split point in framed TCP input;
+- partial writes and several frames arriving together;
+- stalled HTTP and TCP readers;
+- counter resets, collector warm-up and PID reuse;
+- descriptor reclamation and partial-startup rollback;
+- shutdown while sessions have pending output;
+- concurrent immutable publication;
+- JSON ownership and parser limits.
 
-## Engineering Notes
+GCC and Clang builds, ASan, UBSan, TSan and short fuzz runs are defined in CI.
 
-### Resource ownership is visible in the types
-
-File descriptors are managed by a move-only RAII owner. Connection state and descriptor ownership are separate concerns: a failed session may be dead, but its descriptor still has exactly one owner responsible for closing it.
-
-Background work uses `std::jthread` and cooperative cancellation through `std::stop_token`. Shutdown stops accepting clients, wakes pending work, closes sessions, and joins workers in a defined order.
-
-### Slow clients do not become global backpressure
-
-Every client has a bounded output state. Dashboard delivery follows a **latest wins** policy: a partially transmitted frame is completed, one newest snapshot is retained, and obsolete pending snapshots may be replaced. This preserves TCP framing while keeping memory bounded.
-
-The server tracks dropped snapshots and clients that make no progress, making overload visible instead of hiding it behind growing queues.
-
-### Metrics have explicit semantics
-
-- Durations and rates use monotonic time rather than wall-clock time.
-- A first sample is `warming_up`; it is not silently reported as a zero rate.
-- Counter regressions establish a new baseline instead of producing an unsigned spike.
-- Legacy wire fields `rx_kbps` and `tx_kbps` are explicitly documented as KiB/s; their names remain unchanged for protocol compatibility.
-- Process CPU history uses `(pid, starttime)` rather than PID alone.
-- Missing, stale, unavailable, and valid-zero values remain distinct.
-
-Process collection deliberately inspects every visible numeric `/proc` entry
-before selecting the transmitted top-K set. This keeps ranking correct but
-makes collection cost linear in the number of visible processes.
-`max_processes` bounds serialization and network payload size; it does not
-short-circuit procfs enumeration. The behavior can be measured reproducibly:
+Performance claims should come with the environment and raw data. The included
+benchmark records request latency, collection time, server CPU, peak RSS, payload
+size and reactor counters against synthetic procfs populations:
 
 ```bash
 python3 scripts/benchmark.py \
@@ -178,59 +361,35 @@ python3 scripts/benchmark.py \
   --output benchmark-5000.json
 ```
 
-The benchmark uses a synthetic procfs fixture and records collection time,
-request latency, CPU consumption, peak RSS, and open descriptor count.
-
-### Read-only by design
-
-WEB HTOP observes the machine; it does not terminate processes or change cgroup limits. The default workflow is suitable for local diagnosis, remote observation through a protected tunnel, testing, and recorded-session analysis.
-
-## Verification
-
-Run the complete test suite:
-
-```bash
-ctest --test-dir build --output-on-failure
-```
-
-The test strategy covers more than parsers and happy paths:
-
-- partial TCP reads and writes;
-- multiple frames received together;
-- stalled HTTP and TCP clients;
-- counter resets and collector warm-up;
-- PID reuse;
-- shutdown while network operations are active;
-- JSON ownership and validation boundaries.
-
-Sanitizer builds are recommended while changing concurrency or ownership code:
-
-```bash
-cmake -S . -B build-asan \
-  -DWEB_HTOP_BUILD_TESTS=ON \
-  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
-
-cmake --build build-asan -j"$(nproc)"
-ctest --test-dir build-asan --output-on-failure
-```
-
-## Experimental: Scheduler Latency
-
-An optional CO-RE/eBPF profiler can extend utilization metrics with scheduler latency: the time runnable work spends waiting before it is placed on a CPU. It is intentionally separate from the core runtime, which continues to work without eBPF support or elevated privileges.
-
-Kernel capabilities, BTF availability, and permissions vary by system; treat this module as experimental and validate it on the target kernel.
-
-## Project Layout
+## Project layout
 
 ```text
-client/       interactive terminal console
-server/       collection, snapshot publication, and network runtime
-common/       models, framing, JSON, and shared utilities
-tests/        unit, parser, lifecycle, and socket-level tests
-scripts/      build and run helpers
-docs/         architecture and operational notes
+client/       terminal UI, replay and network client
+server/       Linux collection, publication and epoll runtime
+common/       owned JSON, models, protocol and RAII utilities
+tests/        deterministic, integration and fuzz checks
+tools/        optional scheduler profiler
+packaging/    service and Kubernetes deployment files
+scripts/      run, benchmark and validation helpers
+docs/         contracts, architecture and operational notes
 ```
+
+## Documentation
+
+- [Architecture and ownership](docs/architecture.md)
+- [Metric definitions](docs/metrics.md)
+- [HTTP contract](docs/http_api.md)
+- [Streaming protocol](docs/protocol.md)
+- [Tests and measurements](docs/testing.md)
+- [Design decisions](docs/decisions.md)
+- [Container and Kubernetes deployment](docs/container.md)
 
 ## License
 
 WEB HTOP is available under the [MIT License](LICENSE).
+
+<div align="center">
+
+Built by [Roman Snitko](https://github.com/RomanSnitko).
+
+</div>
