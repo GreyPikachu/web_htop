@@ -259,6 +259,83 @@ After reconnect, a client needs only the next frame — there is no delta-recove
 protocol. A changed instance ID identifies a server restart; a sequence gap identifies
 skipped complete generations.
 
+## Built-in JSON Engine
+
+WEB HTOP does not depend on a third-party JSON library. Its wire protocol and
+HTTP responses are backed by a JSON parser and serializer implemented inside
+the project.
+
+The parser is not just a minimal tokenizer. It handles:
+
+- objects, arrays, strings, booleans, null and typed numeric values;
+- escaped characters and UTF-16 surrogate-pair decoding;
+- signed, unsigned and floating-point number boundaries;
+- stable ownership of decoded strings;
+- configurable limits for input size, nesting depth, node count and object keys;
+- rejection of duplicate keys, malformed escapes and invalid UTF-8;
+- rejection of trailing data, non-finite values and incomplete documents;
+- non-throwing parse failures through `std::optional`.
+
+```cpp
+#include "common/json/parser.hpp"
+
+#include <iostream>
+#include <string_view>
+
+int main()
+{
+    constexpr std::string_view payload = R"({
+        "protocol_version": 2,
+        "sequence": 1842,
+        "instance": "node-a",
+        "ready": true,
+        "load": [0.42, 0.31, 0.18]
+    })";
+
+    auto document = web_htop::json::Parse(payload);
+
+    if (!document) {
+        std::cerr << "invalid telemetry document\n";
+        return 1;
+    }
+
+    const auto& root = document->value;
+
+    const auto version = root["protocol_version"];
+    const auto sequence = root["sequence"];
+    const auto instance = root["instance"];
+
+    std::cout
+        << "protocol=" << version->get().AsUInt64().value()
+        << " sequence=" << sequence->get().AsUInt64().value()
+        << " instance=" << instance->get().AsString().value()
+        << '\n';
+}
+```
+
+Output:
+
+```text
+protocol=2 sequence=1842 instance=node-a
+```
+
+Malformed input is rejected instead of being partially accepted:
+
+```cpp
+auto trailing_comma = web_htop::json::Parse(R"({"ready":true,})");
+auto broken_unicode = web_htop::json::Parse(R"({"name":"\uD800"})");
+auto trailing_data   = web_htop::json::Parse(R"({"ready":true} garbage)");
+
+assert(!trailing_comma);
+assert(!broken_unicode);
+assert(!trailing_data);
+```
+
+Keeping JSON inside the project makes protocol ownership explicit: parsing
+limits, numeric semantics, string lifetime and validation rules remain aligned
+with the telemetry model rather than being inherited from a general-purpose
+dependency.
+
 ## Engineering notes
 
 <details>
