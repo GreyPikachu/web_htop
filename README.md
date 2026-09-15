@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="2172" height="724" alt="ChatGPT Image 15 сент  2026 г , 16_16_37" src="https://github.com/user-attachments/assets/c249cc39-fe30-49ae-899e-603fff7daa4b" />
+<img width="2172" height="724" alt="ChatGPT Image 15 сент  2026 г , 16_23_21" src="https://github.com/user-attachments/assets/cd269fb5-0988-4aea-ab27-31f8cb3104cc" />
 
 ### One Linux host. Many observers. No screenshot archaeology.
 
