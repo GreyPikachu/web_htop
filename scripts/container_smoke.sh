@@ -57,9 +57,24 @@ for attempt in $(seq 1 30); do
     sleep 1
 done
 
-curl --fail --silent --show-error "http://127.0.0.1:${http_port}/health"
+for attempt in $(seq 1 30); do
+    if curl --fail --silent         "http://127.0.0.1:${http_port}/ready" >/dev/null; then
+        break
+    fi
+
+    if (( attempt == 30 )); then
+        docker logs "$container" >&2
+        echo "error: /ready did not become available" >&2
+        exit 1
+    fi
+
+    sleep 1
+done
+
+curl --fail --silent --show-error     "http://127.0.0.1:${http_port}/health"
 echo
-curl --fail --silent --show-error "http://127.0.0.1:${http_port}/ready"
+
+curl --fail --silent --show-error     "http://127.0.0.1:${http_port}/ready"
 echo
 
 actual_user="$(docker inspect --format '{{.Config.User}}' "$container")"
