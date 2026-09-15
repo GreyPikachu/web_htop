@@ -221,8 +221,7 @@ models::PressureMetrics ParsePressure(std::string resource, std::string_view tex
             auto key = token.substr(0, equal);
             double n{};
 
-            if (!Parse(token.substr(equal + 1), n) || !std::isfinite(n) ||
-                n < 0 || n > 100)
+            if (!Parse(token.substr(equal + 1), n) || !std::isfinite(n) || n < 0 || n > 100)
             {
                 continue;
             }
