@@ -1,6 +1,6 @@
 <div align="center">
 
-# WEB HTOP
+<img width="2172" height="724" alt="ChatGPT Image 15 сент  2026 г , 16_16_37" src="https://github.com/user-attachments/assets/c249cc39-fe30-49ae-899e-603fff7daa4b" />
 
 ### One Linux host. Many observers. No screenshot archaeology.
 
@@ -122,6 +122,8 @@ The client has six focused workspaces:
 Use `c/m/p/t` to sort processes, `/` to filter, `j/k` to scroll, `Space` to
 freeze the visible generation, and `h` for the complete key map. Freeze affects
 presentation only: the network reader continues to drain the stream.
+
+https://github.com/user-attachments/assets/640a92e1-7964-4997-95bd-8a9b840efe0a
 
 ## Architecture
 
