@@ -17,9 +17,6 @@ locally, over SSH, from several terminals, or through machine-readable APIs.
   <a href="https://github.com/RomanSnitko/web_htop/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-2ea44f?style=flat-square" alt="MIT License">
   </a>
-  <a href="https://github.com/RomanSnitko/web_htop/stargazers">
-    <img src="https://img.shields.io/github/stars/RomanSnitko/web_htop?style=flat-square&logo=github&color=f5c542" alt="GitHub stars">
-  </a>
 </p>
 
 <p align="center">
