@@ -123,7 +123,8 @@ Use `c/m/p/t` to sort processes, `/` to filter, `j/k` to scroll, `Space` to
 freeze the visible generation, and `h` for the complete key map. Freeze affects
 presentation only: the network reader continues to drain the stream.
 
-https://github.com/user-attachments/assets/640a92e1-7964-4997-95bd-8a9b840efe0a
+<div align="center">
+<img width="320" height="320" alt="web-htop-demo" src="https://github.com/user-attachments/assets/c332cb58-178b-4b89-b56c-b474648c3242" />
 
 ## Architecture
 
