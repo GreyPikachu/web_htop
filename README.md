@@ -7,11 +7,32 @@
 A C++20 telemetry server and terminal console for watching Linux systems live -
 locally, over SSH, from several terminals, or through machine-readable APIs.
 
-[![C++ checks](https://github.com/RomanSnitko/web_htop/actions/workflows/ci.yml/badge.svg)](https://github.com/RomanSnitko/web_htop/actions/workflows/ci.yml)
-[![Container](https://github.com/RomanSnitko/web_htop/actions/workflows/container.yml/badge.svg)](https://github.com/RomanSnitko/web_htop/actions/workflows/container.yml)
-[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus)](https://en.cppreference.com/w/cpp/20)
-[![Linux](https://img.shields.io/badge/platform-Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](https://kernel.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
+<p align="center">
+  <a href="https://github.com/RomanSnitko/web_htop/actions/workflows/ci.yml">
+    <img src="https://github.com/RomanSnitko/web_htop/actions/workflows/ci.yml/badge.svg?branch=main" alt="C++ checks">
+  </a>
+  <a href="https://github.com/RomanSnitko/web_htop/actions/workflows/container.yml">
+    <img src="https://github.com/RomanSnitko/web_htop/actions/workflows/container.yml/badge.svg?branch=main" alt="Container checks">
+  </a>
+  <a href="https://github.com/RomanSnitko/web_htop/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-2ea44f?style=flat-square" alt="MIT License">
+  </a>
+  <a href="https://github.com/RomanSnitko/web_htop/stargazers">
+    <img src="https://img.shields.io/github/stars/RomanSnitko/web_htop?style=flat-square&logo=github&color=f5c542" alt="GitHub stars">
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus&logoColor=white" alt="C++20">
+  <img src="https://img.shields.io/badge/Concurrency-jthread%20%7C%20stop__token%20%7C%20atomics-7B68EE?style=flat-square&logo=cplusplus&logoColor=white" alt="C++ concurrency">
+  <img src="https://img.shields.io/badge/Linux-procfs%20%7C%20PSI-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux procfs and PSI">
+  <img src="https://img.shields.io/badge/I%2FO-epoll-00B8D9?style=flat-square&logo=linux&logoColor=white" alt="epoll">
+  <img src="https://img.shields.io/badge/Build-CMake-064F8C?style=flat-square&logo=cmake&logoColor=white" alt="CMake">
+  <img src="https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Deploy-Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white" alt="Kubernetes">
+  <img src="https://img.shields.io/badge/Arch-amd64%20%7C%20arm64-6E7781?style=flat-square" alt="amd64 and arm64">
+  <img src="https://img.shields.io/badge/Sanitizers-ASan%20%7C%20UBSan%20%7C%20TSan-A371F7?style=flat-square" alt="ASan, UBSan and TSan">
+</p>
 
 [Quick start](#quick-start) · [Remote observation](#one-host-many-observers) · [Architecture](#architecture) · [HTTP API](#http-api) · [Engineering notes](#engineering-notes)
 
