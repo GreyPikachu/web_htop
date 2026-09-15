@@ -115,9 +115,9 @@ queries and diagnostics. A slow TCP reader cannot hold a mutex needed by another
 client or by the collector, and memory remains bounded by per-session and global
 queue limits.
 
-> WEB HTOP does not implement transport authentication or TLS. Keep the default
-> loopback binding, use SSH, or place explicitly exposed listeners inside a trusted
-> network boundary.
+WEB HTOP does not implement transport authentication or TLS. Keep the default
+loopback binding, use SSH, or place explicitly exposed listeners inside a trusted
+network boundary.
 
 ## See it in action
 
