@@ -452,8 +452,7 @@ std::string Reactor::Route(std::string_view text)
     {
         return HttpResponse(503, R"({"error":"warming_up"})");
     }
-    return HttpResponse(200,
-                        request.path == "/metrics" ? *latest->json : *latest->processes_json);
+    return HttpResponse(200, request.path == "/metrics" ? *latest->json : *latest->processes_json);
 }
 
 void Reactor::Run()
