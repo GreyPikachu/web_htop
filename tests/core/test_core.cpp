@@ -210,6 +210,7 @@ void TestProcessParser()
     auto p = ParseProcess(Stat(42, 120, 77, "a tricky ) name\nwith newline"));
     CHECK(p);
     CHECK(p->pid == 42);
+    CHECK(p->ppid == 1);
     CHECK(p->ticks == 120);
     CHECK(p->starttime == 77);
     CHECK(p->threads == 2);

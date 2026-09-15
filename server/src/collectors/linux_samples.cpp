@@ -173,9 +173,9 @@ std::optional<ProcessSample> ParseProcess(std::string_view text)
     std::uint64_t user{}, system{};
     std::int64_t rss{};
 
-    if (fields[0].size() != 1 || !Parse(fields[11], user) || !Parse(fields[12], system) ||
-        !Parse(fields[17], s.threads) || !Parse(fields[19], s.starttime) ||
-        !Parse(fields[21], rss))
+    if (fields[0].size() != 1 || !Parse(fields[1], s.ppid) || !Parse(fields[11], user) ||
+        !Parse(fields[12], system) || !Parse(fields[17], s.threads) ||
+        !Parse(fields[19], s.starttime) || !Parse(fields[21], rss))
     {
         return std::nullopt;
     }
